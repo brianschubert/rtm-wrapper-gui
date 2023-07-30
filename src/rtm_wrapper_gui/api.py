@@ -1,4 +1,5 @@
 import argparse
+import ast
 import logging
 import shlex
 import sys
@@ -13,10 +14,23 @@ def _make_parser() -> argparse.ArgumentParser:
     """
     Create CLI argument parser.
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
-    parser.add_argument("--log-level", type=util.log_level, default=logging.WARNING)
-    parser.add_argument("--qt-args", type=shlex.split, default=[])
+    parser.add_argument(
+        "--log-level",
+        type=util.log_level,
+        default="WARNING",
+        help="Log level.",
+        metavar="{DEBUG,INFO,WARNING,ERROR,CRITICAL} | <integer>",
+    )
+    parser.add_argument(
+        "--qt-args",
+        type=shlex.split,
+        default="",
+        help="Command line to pass to the internal QApplication.",
+    )
 
     return parser
 
