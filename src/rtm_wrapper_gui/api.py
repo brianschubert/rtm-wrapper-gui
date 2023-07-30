@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import logging
 import shlex
 import signal
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from PySide6 import QtWidgets
 
-from . import util
-from .window import MainWindow
+from rtm_wrapper_gui import util
+from rtm_wrapper_gui.window import MainWindow
 
 if TYPE_CHECKING:
     from types import FrameType
+
+DISTRIBUTION_NAME: Final[str] = "rtm_wrapper_gui"
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -37,6 +40,9 @@ def _make_parser() -> argparse.ArgumentParser:
         default="",
         help="Command line to pass to the internal QApplication.",
     )
+    parser.add_argument(
+        "--version", action="store_true", help="Print version information and exit."
+    )
 
     return parser
 
@@ -44,6 +50,11 @@ def _make_parser() -> argparse.ArgumentParser:
 def main(cli_args: list[str]) -> None:
     """CLI entrypoint."""
     args = _make_parser().parse_args(cli_args)
+
+    # Print version and exit if requested.
+    if args.version:
+        print(_make_version(DISTRIBUTION_NAME))
+        return
 
     util.setup_debug_root_logging(args.log_level)
     logger = logging.getLogger(__name__)
@@ -90,3 +101,18 @@ def _register_quit() -> None:
         QtWidgets.QApplication.quit()
 
     signal.signal(signal.SIGINT, _handler)
+
+
+def _make_version(distribution_name: str) -> str:
+    """Generate version info string."""
+    dep_str = ", ".join(
+        f"{dep} {importlib.metadata.version(dep)}"
+        for dep in _dist_dependencies(distribution_name)
+    )
+    return f"{distribution_name} {importlib.metadata.version(distribution_name )} ({dep_str})"
+
+
+def _dist_dependencies(distribution_name: str) -> list[str]:
+    """Retrieve the names of the direct dependencies of the given distribution."""
+    requirements = importlib.metadata.requires(distribution_name)
+    return [req.partition(" ")[0] for req in requirements]
