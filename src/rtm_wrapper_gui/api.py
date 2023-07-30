@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import argparse
 import logging
 import shlex
+import signal
 import sys
+from typing import TYPE_CHECKING
 
 from PySide6 import QtWidgets
 
 from . import util
 from .window import MainWindow
+
+if TYPE_CHECKING:
+    from types import FrameType
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -45,6 +52,7 @@ def main(cli_args: list[str]) -> None:
     qt_argv = sys.argv[:1] + args.qt_args
     logger.debug("starting QApplication with args=%r", qt_argv)
     app = QtWidgets.QApplication(qt_argv)
+    _register_quit()
 
     logger.debug("creating main window")
     window = MainWindow()
@@ -60,3 +68,25 @@ def main(cli_args: list[str]) -> None:
 def run() -> None:
     """Launch CLI entrypoint with the current process's CLI args."""
     main(sys.argv[1:])
+
+
+def _register_quit() -> None:
+    """
+    Registering signal handler to gracefully quit the global QApplication on SIGINT.
+
+    References
+    ==========
+
+    * https://stackoverflow.com/questions/4938723/
+    """
+
+    def _handler(signum: int, frame: FrameType | None) -> None:
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            "quitting in response to signal %r. Was in %r",
+            signal.Signals(signum).name,
+            frame,
+        )
+        QtWidgets.QApplication.quit()
+
+    signal.signal(signal.SIGINT, _handler)
