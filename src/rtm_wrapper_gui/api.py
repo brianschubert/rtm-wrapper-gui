@@ -1,5 +1,4 @@
 import argparse
-import ast
 import logging
 import shlex
 import sys
@@ -44,14 +43,18 @@ def main(cli_args: list[str]) -> None:
     logger.debug("cli %r", args)
 
     qt_argv = sys.argv[:1] + args.qt_args
-    logger.debug(f"starting QApplication with {qt_argv=}")
+    logger.debug("starting QApplication with args=%r", qt_argv)
     app = QtWidgets.QApplication(qt_argv)
 
+    logger.debug("creating main window")
     window = MainWindow()
     window.resize(1200, 800)
+    logger.debug("showing main window")
     window.show()
 
+    logger.debug("starting app")
     app.exec()
+    logger.debug("exiting normally")
 
 
 def run() -> None:
