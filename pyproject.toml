@@ -12,6 +12,8 @@ pyside6 = "^6.5.2"
 matplotlib = "^3.7.2"
 numpy = "^1.25.1"
 
+[tool.poetry.scripts]
+rtm-gui = "rtm_wrapper_gui.api:run"
 
 [build-system]
 requires = ["poetry-core"]
