@@ -11,6 +11,7 @@ python = "^3.9,<3.12"  # Upper bound requried by PySide6
 pyside6 = "^6.5.2"
 matplotlib = "^3.7.2"
 numpy = "^1.25.1"
+rtm-wrapper = { git = "https://github.com/brianschubert/rtm-wrapper.git", rev = "develop" }
 
 [tool.poetry.scripts]
 rtm-gui = "rtm_wrapper_gui.api:run"
