@@ -50,8 +50,9 @@ class FigureWidget(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def draw_random(self) -> None:
-        self.axes.clear()
-        self.axes.plot(
+        self._set_subplots(nrows=1, ncols=1)
+        self.axes.item().clear()
+        self.axes.item().plot(
             np.random.random_integers(0, 10, 10),
             np.random.random_integers(0, 10, 10),
             "x",
