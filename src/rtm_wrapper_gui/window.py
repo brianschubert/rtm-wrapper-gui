@@ -54,6 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
         top_splitter.addWidget(self._init_data_widget())
         top_splitter.addWidget(self._init_plot_widget())
+        top_splitter.setHandleWidth(10)
         top_layout.addWidget(top_splitter)
 
         # Set stylesheet.
@@ -85,6 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
         frame_widget.setLayout(frame_layout)
 
         splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical)
+        splitter.setHandleWidth(10)
         frame_layout.addWidget(splitter)
 
         self.figure_widget = FigureWidget()
