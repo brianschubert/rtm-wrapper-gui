@@ -5,22 +5,21 @@ from typing import TYPE_CHECKING, Any, Optional
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
+from PySide6 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
-
-from PySide6 import QtCore, QtWidgets
 
 
 class FigureWidget(QtWidgets.QWidget):
     canvas: FigureCanvasQTAgg
 
-    axes: Axes
+    axes: np.ndarray
 
     draw = QtCore.Signal()
 
     def __init__(
-        self, parent: Optional[QtWidgets.QWidget] = None, *args, **kwargs
+        self, parent: Optional[QtWidgets.QWidget] = None, *args: Any, **kwargs: Any
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -34,7 +33,8 @@ class FigureWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-        self.axes = self.canvas.figure.subplots()
+        # Temporarily initialize axes to single array of shape () containing a None value.
+        self.axes = np.empty((0,), dtype=object)
 
         self._init_signals()
 
