@@ -41,6 +41,15 @@ class FigureWidget(QtWidgets.QWidget):
     def _init_signals(self) -> None:
         self.draw.connect(self.draw_random)
 
+    def _get_axes(self) -> Axes:
+        try:
+            return self.axes.item()  # type: ignore
+        except ValueError as ex:
+            raise RuntimeError(
+                f"attempted to retrieve singleton axes, but current figure"
+                f" has multiple axes with shape {self.axes.shape}"
+            ) from ex
+
     def resizeEvent(self, *args: Any) -> None:
         super().resizeEvent(*args)
         self.refresh_canvas()
@@ -51,8 +60,8 @@ class FigureWidget(QtWidgets.QWidget):
     @QtCore.Slot()
     def draw_random(self) -> None:
         self._set_subplots(nrows=1, ncols=1)
-        self.axes.item().clear()
-        self.axes.item().plot(
+        self._get_axes().clear()
+        self._get_axes().plot(
             np.random.random_integers(0, 10, 10),
             np.random.random_integers(0, 10, 10),
             "x",
@@ -62,10 +71,8 @@ class FigureWidget(QtWidgets.QWidget):
     def show_splash(self, message: str, **kwargs: Any) -> None:
         self._set_subplots(nrows=1, ncols=1)
 
-        ax: Axes = self.axes.item()
-
-        ax.axis("off")
+        self._get_axes().axis("off")
         # ax.set_xticks([])
         # ax.set_yticks([])
 
-        ax.text(0.5, 0.5, message, **kwargs)
+        self._get_axes().text(0.5, 0.5, message, **kwargs)
