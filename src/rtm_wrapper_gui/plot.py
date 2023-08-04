@@ -24,7 +24,7 @@ class FigureWidget(QtWidgets.QWidget):
         super().__init__(parent, *args, **kwargs)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(10, 0, 10, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.canvas = FigureCanvasQTAgg(Figure(tight_layout=True))
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
