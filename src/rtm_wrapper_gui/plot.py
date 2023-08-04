@@ -26,7 +26,7 @@ class FigureWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(10, 0, 10, 0)
 
-        self.canvas = FigureCanvasQTAgg(Figure(figsize=(5, 3)))
+        self.canvas = FigureCanvasQTAgg(Figure(tight_layout=True))
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
@@ -43,12 +43,10 @@ class FigureWidget(QtWidgets.QWidget):
 
     def resizeEvent(self, *args: Any) -> None:
         super().resizeEvent(*args)
-        self.canvas.figure.tight_layout()
+        self.refresh_canvas()
 
     def refresh_canvas(self) -> None:
-        self.canvas.figure.tight_layout()
         self.canvas.draw_idle()
-        # self.canvas.flush_events()
 
     @QtCore.Slot()
     def draw_random(self) -> None:
