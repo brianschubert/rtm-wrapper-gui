@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import argparse
-import importlib.metadata
 import logging
 import shlex
 import signal
 import sys
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from PySide6 import QtWidgets
 
@@ -15,8 +14,6 @@ from rtm_wrapper_gui.window import MainWindow
 
 if TYPE_CHECKING:
     from types import FrameType
-
-DISTRIBUTION_NAME: Final[str] = "rtm_wrapper_gui"
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -53,7 +50,7 @@ def main(cli_args: list[str]) -> None:
 
     # Print version and exit if requested.
     if args.version:
-        print(_make_version(DISTRIBUTION_NAME))
+        print(util.make_version(util.DISTRIBUTION_NAME))
         return
 
     util.setup_debug_root_logging(args.log_level)
@@ -101,18 +98,3 @@ def _register_quit() -> None:
         QtWidgets.QApplication.quit()
 
     signal.signal(signal.SIGINT, _handler)
-
-
-def _make_version(distribution_name: str) -> str:
-    """Generate version info string."""
-    dep_str = ", ".join(
-        f"{dep} {importlib.metadata.version(dep)}"
-        for dep in _dist_dependencies(distribution_name)
-    )
-    return f"{distribution_name} {importlib.metadata.version(distribution_name )} ({dep_str})"
-
-
-def _dist_dependencies(distribution_name: str) -> list[str]:
-    """Retrieve the names of the direct dependencies of the given distribution."""
-    requirements = importlib.metadata.requires(distribution_name)
-    return [req.partition(" ")[0] for req in requirements]

@@ -2,7 +2,11 @@
 Misc utilities.
 """
 import argparse
+import importlib.metadata
 import logging.config
+from typing import Final
+
+DISTRIBUTION_NAME: Final[str] = "rtm_wrapper_gui"
 
 
 def setup_debug_root_logging(level: int = logging.NOTSET) -> None:
@@ -75,3 +79,18 @@ def log_level(raw_arg: str) -> int:
         return resolved_level
 
     raise argparse.ArgumentTypeError(f"unable to interpret log level: {raw_arg}")
+
+
+def make_version(distribution_name: str) -> str:
+    """Generate version info string for the given distribution."""
+    dep_str = ", ".join(
+        f"{dep} {importlib.metadata.version(dep)}"
+        for dep in _dist_dependencies(distribution_name)
+    )
+    return f"{distribution_name} {importlib.metadata.version(distribution_name )} ({dep_str})"
+
+
+def _dist_dependencies(distribution_name: str) -> list[str]:
+    """Retrieve the names of the direct dependencies of the given distribution."""
+    requirements = importlib.metadata.requires(distribution_name)
+    return [req.partition(" ")[0] for req in requirements]
