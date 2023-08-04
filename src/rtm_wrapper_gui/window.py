@@ -6,20 +6,20 @@ import xarray as xr
 from PySide6 import QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QSizePolicy
 
 from rtm_wrapper_gui import util
 from rtm_wrapper_gui.plot import FigureWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    _central_widget: QtWidgets.QWidget
+    central_widget: QtWidgets.QWidget
 
     figure_widget: FigureWidget
 
     plot_button: QtWidgets.QPushButton
 
     browse_button: QtWidgets.QPushButton
+    dataset_textedit: QtWidgets.QTextEdit
 
     _dataset: xr.Dataset
 
@@ -46,10 +46,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _init_central_widget(self) -> None:
         # Setup central widget and layout.
-        self._central_widget = QtWidgets.QWidget()
+        self.central_widget = QtWidgets.QWidget()
         top_layout = QtWidgets.QVBoxLayout()
-        self._central_widget.setLayout(top_layout)
-        self.setCentralWidget(self._central_widget)
+        self.central_widget.setLayout(top_layout)
+        self.setCentralWidget(self.central_widget)
 
         # Add main vertical splitter.
         top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
@@ -59,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         top_layout.addWidget(top_splitter)
 
         # Set stylesheet.
-        self._central_widget.setStyleSheet(
+        self.central_widget.setStyleSheet(
             """
             QSplitter::handle {
                 background: #BBBBBB;
@@ -78,6 +78,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.browse_button = QtWidgets.QPushButton()
         self.browse_button.setText("Select results file")
         frame_layout.addWidget(self.browse_button)
+
+        self.dataset_textedit = QtWidgets.QTextEdit()
+        self.dataset_textedit.setText("No simulation results loaded.")
+        frame_layout.addWidget(self.dataset_textedit)
 
         return frame_widget
 
@@ -125,3 +129,4 @@ class MainWindow(QtWidgets.QMainWindow):
             logger.error("failed to load dataset", exc_info=ex)
             return
         logger.debug("loaded dataset\n%r", self._dataset)
+        self.dataset_textedit.setText(repr(self._dataset))
