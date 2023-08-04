@@ -57,6 +57,24 @@ class FigureWidget(QtWidgets.QWidget):
     def _refresh_canvas(self) -> None:
         self.canvas.draw_idle()
 
+    def _set_subplots(self, **kwargs: Any) -> None:
+        # Remove all existing axes.
+        for ax in self.axes.flat:
+            self.canvas.figure.delaxes(ax)
+
+        # Create the requested axes.
+        axes: Axes | np.ndarray = self.canvas.figure.subplots(**kwargs)
+
+        if isinstance(axes, np.ndarray):
+            self.axes = axes
+        else:
+            # Only single axis was returned. Store it as a singleton array with shape
+            # (). This ensures that ``self.axes`` always has a consistent type.
+            self.axes = np.array(axes, dtype=object)
+
+        # Reset the toolbar's navigation stack.
+        self.toolbar.update()
+
     @QtCore.Slot()
     def draw_random(self) -> None:
         self._set_subplots(nrows=2, ncols=2)
