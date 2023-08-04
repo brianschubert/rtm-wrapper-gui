@@ -1,6 +1,7 @@
 from typing import Any
 
 from PySide6 import QtWidgets
+from PySide6.QtGui import QIcon
 
 from rtm_wrapper_gui import util
 from rtm_wrapper_gui.plot import FigureWidget
@@ -28,6 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _init_window(self) -> None:
         self.setWindowTitle("RTM Wrapper GUI")
+        self.setWindowIcon(QIcon.fromTheme("applications-science"))
 
     def _init_signals(self) -> None:
         self.plot_button.clicked.connect(self.figure_widget.draw)
