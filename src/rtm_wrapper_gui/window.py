@@ -6,6 +6,7 @@ import xarray as xr
 from PySide6 import QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QSizePolicy
 
 from rtm_wrapper_gui import util
 from rtm_wrapper_gui.plot import FigureWidget
@@ -92,9 +93,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.figure_widget = FigureWidget()
         splitter.addWidget(self.figure_widget)
 
+        control_widget = QtWidgets.QWidget()
+        controls_layout = QtWidgets.QHBoxLayout()
+        control_widget.setLayout(controls_layout)
+        splitter.addWidget(control_widget)
+
         self.plot_button = QtWidgets.QPushButton()
         self.plot_button.setText("Plot")
-        splitter.addWidget(self.plot_button)
+        controls_layout.addWidget(self.plot_button)
 
         return frame_widget
 
