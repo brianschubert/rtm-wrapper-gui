@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
@@ -40,6 +40,10 @@ class FigureWidget(QtWidgets.QWidget):
 
     def _init_signals(self) -> None:
         self.draw.connect(self.draw_random)
+
+    def resizeEvent(self, *args: Any) -> None:
+        super().resizeEvent(*args)
+        self.canvas.figure.tight_layout()
 
     def refresh_canvas(self) -> None:
         self.canvas.figure.tight_layout()
