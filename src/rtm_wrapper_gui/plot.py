@@ -57,3 +57,14 @@ class FigureWidget(QtWidgets.QWidget):
             "x",
         )
         self.refresh_canvas()
+
+    def show_splash(self, message: str, **kwargs: Any) -> None:
+        self._set_subplots(nrows=1, ncols=1)
+
+        ax: Axes = self.axes.item()
+
+        ax.axis("off")
+        # ax.set_xticks([])
+        # ax.set_yticks([])
+
+        ax.text(0.5, 0.5, message, **kwargs)

@@ -2,6 +2,7 @@ from typing import Any
 
 from PySide6 import QtWidgets
 
+from rtm_wrapper_gui import util
 from rtm_wrapper_gui.plot import FigureWidget
 
 
@@ -17,6 +18,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._init_window()
         self._init_central_widget()
         self._init_signals()
+
+        self.figure_widget.show_splash(
+            f"{util.make_version(util.DISTRIBUTION_NAME)}",
+            horizontalalignment="center",
+            color="grey",
+            fontstyle="italic",
+        )
 
     def _init_window(self) -> None:
         self.setWindowTitle("RTM Wrapper GUI")
