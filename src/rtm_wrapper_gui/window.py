@@ -3,7 +3,7 @@ import pathlib
 from typing import Any
 
 import xarray as xr
-from PySide6 import QtWidgets
+from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
@@ -81,6 +81,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.dataset_textedit = QtWidgets.QTextEdit()
         self.dataset_textedit.setText("No simulation results loaded.")
+        self.dataset_textedit.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        self.dataset_textedit.setFont(QtGui.QFont("monospace"))
         frame_layout.addWidget(self.dataset_textedit)
 
         return frame_widget
