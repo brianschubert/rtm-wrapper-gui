@@ -4,6 +4,7 @@ from typing import Any
 
 import xarray as xr
 from PySide6 import QtWidgets
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
 from rtm_wrapper_gui import util
@@ -43,22 +44,45 @@ class MainWindow(QtWidgets.QMainWindow):
         self.browse_button.clicked.connect(self._on_browse)
 
     def _init_central_widget(self) -> None:
+        # Setup central widget and layout.
+        self._central_widget = QtWidgets.QWidget()
         top_layout = QtWidgets.QVBoxLayout()
+        self._central_widget.setLayout(top_layout)
+        self.setCentralWidget(self._central_widget)
 
-        self.plot_button = QtWidgets.QPushButton()
-        self.plot_button.setText("Plot")
-        top_layout.addWidget(self.plot_button)
+        # Add main vertical splitter.
+        top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
+        top_splitter.addWidget(self._init_data_widget())
+        top_splitter.addWidget(self._init_plot_widget())
+        top_layout.addWidget(top_splitter)
+
+    def _init_data_widget(self) -> QtWidgets.QWidget:
+        frame_widget = QtWidgets.QWidget()
+        frame_layout = QtWidgets.QVBoxLayout()
+        frame_widget.setLayout(frame_layout)
 
         self.browse_button = QtWidgets.QPushButton()
         self.browse_button.setText("Select results file")
-        top_layout.addWidget(self.browse_button)
+        frame_layout.addWidget(self.browse_button)
+
+        return frame_widget
+
+    def _init_plot_widget(self) -> QtWidgets.QWidget:
+        frame_widget = QtWidgets.QWidget()
+        frame_layout = QtWidgets.QVBoxLayout()
+        frame_widget.setLayout(frame_layout)
+
+        splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical)
+        frame_layout.addWidget(splitter)
 
         self.figure_widget = FigureWidget()
-        top_layout.addWidget(self.figure_widget)
+        splitter.addWidget(self.figure_widget)
 
-        self._central_widget = QtWidgets.QWidget()
-        self._central_widget.setLayout(top_layout)
-        self.setCentralWidget(self._central_widget)
+        self.plot_button = QtWidgets.QPushButton()
+        self.plot_button.setText("Plot")
+        splitter.addWidget(self.plot_button)
+
+        return frame_widget
 
     def _on_browse(self) -> None:
         logger = logging.getLogger(__name__)
