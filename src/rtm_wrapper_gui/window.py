@@ -56,6 +56,18 @@ class MainWindow(QtWidgets.QMainWindow):
         top_splitter.addWidget(self._init_plot_widget())
         top_layout.addWidget(top_splitter)
 
+        # Set stylesheet.
+        self._central_widget.setStyleSheet(
+            """
+            QSplitter::handle {
+                background: #BBBBBB;
+            }
+            QSplitter::handle:hover {
+                background: #BBBBDD;
+            }
+            """
+        )
+
     def _init_data_widget(self) -> QtWidgets.QWidget:
         frame_widget = QtWidgets.QWidget()
         frame_layout = QtWidgets.QVBoxLayout()
