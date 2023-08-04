@@ -52,9 +52,9 @@ class FigureWidget(QtWidgets.QWidget):
 
     def resizeEvent(self, *args: Any) -> None:
         super().resizeEvent(*args)
-        self.refresh_canvas()
+        self._refresh_canvas()
 
-    def refresh_canvas(self) -> None:
+    def _refresh_canvas(self) -> None:
         self.canvas.draw_idle()
 
     @QtCore.Slot()
@@ -66,7 +66,7 @@ class FigureWidget(QtWidgets.QWidget):
             np.random.random_integers(0, 10, 10),
             "x",
         )
-        self.refresh_canvas()
+        self._refresh_canvas()
 
     def show_splash(self, message: str, **kwargs: Any) -> None:
         self._set_subplots(nrows=1, ncols=1)
