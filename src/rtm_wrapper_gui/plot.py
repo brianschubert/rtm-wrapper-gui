@@ -26,7 +26,7 @@ class FigureWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.canvas = FigureCanvasQTAgg(Figure(tight_layout=True))
+        self.canvas = FigureCanvasQTAgg(Figure())
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
@@ -50,22 +50,23 @@ class FigureWidget(QtWidgets.QWidget):
                 f" has multiple axes with shape {self.axes.shape}"
             ) from ex
 
-    def resizeEvent(self, *args: Any) -> None:
-        super().resizeEvent(*args)
-        self._refresh_canvas()
+    # def resizeEvent(self, *args: Any) -> None:
+    #     super().resizeEvent(*args)
+    #     self._refresh_canvas()
 
     def _refresh_canvas(self) -> None:
         self.canvas.draw_idle()
 
     @QtCore.Slot()
     def draw_random(self) -> None:
-        self._set_subplots(nrows=1, ncols=1)
-        self._get_axes().clear()
-        self._get_axes().plot(
-            np.random.random_integers(0, 10, 10),
-            np.random.random_integers(0, 10, 10),
-            "x",
-        )
+        self._set_subplots(nrows=2, ncols=2)
+        for ax in self.axes.flat:
+            # ax.clear()
+            ax.plot(
+                np.random.random_integers(0, 10, 10),
+                np.random.random_integers(0, 10, 10),
+                "x",
+            )
         self._refresh_canvas()
 
     def show_splash(self, message: str, **kwargs: Any) -> None:
