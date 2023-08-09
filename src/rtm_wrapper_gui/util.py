@@ -1,13 +1,23 @@
 """
 Misc utilities.
 """
+from __future__ import annotations
+
 import argparse
 import importlib.metadata
 import logging.config
 import subprocess
+from dataclasses import dataclass
 from typing import Final
 
+import xarray as xr
+
 DISTRIBUTION_NAME: Final[str] = "rtm_wrapper_gui"
+
+
+@dataclass
+class RtmResults:
+    dataset: xr.Dataset
 
 
 def setup_debug_root_logging(level: int = logging.NOTSET) -> None:
