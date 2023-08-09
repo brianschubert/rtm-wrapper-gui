@@ -9,6 +9,9 @@ packages = [{ from = "src", include = "rtm_wrapper_gui" }]
 [tool.poetry.dependencies]
 python = "^3.9,<3.12"  # Upper bound requried by PySide6
 pyside6 = "^6.5.2"
+matplotlib = "^3.7.2"
+numpy = "^1.25.1"
+
 
 [build-system]
 requires = ["poetry-core"]
