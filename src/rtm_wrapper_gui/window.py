@@ -29,11 +29,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self._init_central_widget()
         self._init_signals()
 
-        self.figure_widget.show_splash(
-            f"{util.make_version(util.DISTRIBUTION_NAME)}",
+        version_info = util.make_detailed_version(util.DISTRIBUTION_NAME).replace(
+            " (", "\n("
+        )
+        self.plots_widget.figure_widget.show_splash(
+            version_info,
             horizontalalignment="center",
             color="grey",
             fontstyle="italic",
+            wrap=True,
         )
 
     def _init_window(self) -> None:

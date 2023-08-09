@@ -4,6 +4,7 @@ Misc utilities.
 import argparse
 import importlib.metadata
 import logging.config
+import subprocess
 from typing import Final
 
 DISTRIBUTION_NAME: Final[str] = "rtm_wrapper_gui"
@@ -81,13 +82,33 @@ def log_level(raw_arg: str) -> int:
     raise argparse.ArgumentTypeError(f"unable to interpret log level: {raw_arg}")
 
 
-def make_version(distribution_name: str) -> str:
+def dev_build_tag() -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            text=True,
+            check=True,
+            capture_output=True,
+        )
+        build_commit = result.stdout.strip()
+        return f"{build_commit}"
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return None
+
+
+def make_detailed_version(distribution_name: str) -> str:
     """Generate version info string for the given distribution."""
     dep_str = ", ".join(
         f"{dep} {importlib.metadata.version(dep)}"
         for dep in _dist_dependencies(distribution_name)
     )
-    return f"{distribution_name} {importlib.metadata.version(distribution_name )} ({dep_str})"
+
+    dist_version = importlib.metadata.version(DISTRIBUTION_NAME)
+    dev_commit = dev_build_tag()
+    if dev_commit is not None:
+        dist_version = f"{dist_version}+{dev_commit}"
+
+    return f"{distribution_name} {dist_version} ({dep_str})"
 
 
 def _dist_dependencies(distribution_name: str) -> list[str]:

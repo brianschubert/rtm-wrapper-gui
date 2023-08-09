@@ -50,7 +50,7 @@ def main(cli_args: list[str]) -> None:
 
     # Print version and exit if requested.
     if args.version:
-        print(util.make_version(util.DISTRIBUTION_NAME))
+        print(util.make_detailed_version(util.DISTRIBUTION_NAME))
         return
 
     util.setup_debug_root_logging(args.log_level)
