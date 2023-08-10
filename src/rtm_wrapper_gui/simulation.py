@@ -70,29 +70,31 @@ class FileSimulationProducer(SimulationProducer):
         self.setLayout(layout)
 
         self.browse_button = QtWidgets.QPushButton(self)
-        self.browse_button.setText("Select results file")
+        self.browse_button.setText("Browse")
         layout.addWidget(self.browse_button)
 
-        logger = logging.getLogger(__name__)
-
         self.file_tree = QtWidgets.QTreeView(self)
+        layout.addWidget(self.file_tree)
+
         model = QtWidgets.QFileSystemModel()
+        # Only enable file watcher for CWD.
         model.setRootPath(QtCore.QDir.currentPath())
         self.file_tree.setModel(model)
-        self.file_tree.expand(model.index(QtCore.QDir.currentPath()))
-        layout.addWidget(self.file_tree)
-        self.file_tree.doubleClicked.connect(
-            lambda *args: logger.info("double clicked %r", args)
-        )
+        # Only display tree for CWD and below. For files outside the CWD, users
+        # can use the browse button.
+        self.file_tree.setRootIndex(model.index(QtCore.QDir.currentPath()))
+        # Make sure full filenames are visible.
         self.file_tree.header().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
 
-        for path in reversed(pathlib.Path.cwd().parents):
-            logger.debug("path %r", path)
-            self.file_tree.expand(model.index(str(path)))
+        self._init_signals()
 
+    def _init_signals(self) -> None:
         self.browse_button.clicked.connect(self._on_browse_button_clicked)
+        self.file_tree.doubleClicked.connect(
+            lambda index: self._load_dataset(self.file_tree.model().filePath(index))
+        )
 
     @QtCore.Slot()
     def _on_browse_button_clicked(self) -> None:
@@ -110,8 +112,12 @@ class FileSimulationProducer(SimulationProducer):
             logger.debug("file selection cancelled")
             return
 
+        self._load_dataset(selected_file)
+
+    def _load_dataset(self, file: str | pathlib.Path) -> None:
+        logger = logging.getLogger(__name__)
         try:
-            dataset = xr.open_dataset(selected_file)
+            dataset = xr.open_dataset(file)
         except Exception as ex:
             logger.error("failed to load dataset", exc_info=ex)
             return
