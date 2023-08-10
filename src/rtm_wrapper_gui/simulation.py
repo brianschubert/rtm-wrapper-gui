@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import logging
 import pathlib
+from typing import Any, Iterable
 
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6.QtCore import Qt
 
 from rtm_wrapper.engines.base import RTMEngine
 from rtm_wrapper_gui import util
@@ -59,6 +61,40 @@ class SimulationProducerTabs(SimulationProducer):
             self.tabs.widget(idx).new_results.connect(self.new_results)
 
 
+class DataFileSystemModel(QtWidgets.QFileSystemModel):
+    """File system model that emphasizes particular data files."""
+
+    data_suffixes: set[str]
+
+    def __init__(self, suffixes: Iterable[str], *args: Any, **kwargs: Any) -> None:
+        self.data_suffixes = set(suffixes)
+        super().__init__(*args, **kwargs)
+
+    def data(
+        self,
+        index: QtCore.QModelIndex,
+        role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if not self._is_special_data(index):
+            return super().data(index, role)
+
+        if role == Qt.ItemDataRole.DisplayRole.DecorationRole and index.column() == 0:
+            return QtWidgets.QApplication.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_FileDialogStart
+            )
+
+        if role == Qt.ItemDataRole.DisplayRole.FontRole:
+            font = QtGui.QFont()
+            font.setBold(True)
+            return font
+
+        return super().data(index, role)
+
+    def _is_special_data(self, index: QtCore.QModelIndex) -> bool:
+        file_info = self.fileInfo(index)
+        return file_info.isFile() and file_info.suffix() in self.data_suffixes
+
+
 class FileSimulationProducer(SimulationProducer):
     browse_button: QtWidgets.QPushButton
 
@@ -76,7 +112,7 @@ class FileSimulationProducer(SimulationProducer):
         self.file_tree = QtWidgets.QTreeView(self)
         layout.addWidget(self.file_tree)
 
-        model = QtWidgets.QFileSystemModel()
+        model = DataFileSystemModel(["nc"])
         # Only enable file watcher for CWD.
         model.setRootPath(QtCore.QDir.currentPath())
         self.file_tree.setModel(model)
