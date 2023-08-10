@@ -4,9 +4,10 @@ GUI elements for running simulations and loading simulation results.
 
 from __future__ import annotations
 
+import itertools
 import logging
 import pathlib
-from typing import Any, Iterable
+from typing import Any, ClassVar, Iterable, Iterator
 
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -171,14 +172,18 @@ class FileSimulationProducer(SimulationProducer):
 
     def _load_dataset(self, file: str | pathlib.Path) -> None:
         logger = logging.getLogger(__name__)
+
+        path = pathlib.Path(file)
+
         try:
-            dataset = xr.open_dataset(file)
+            dataset = xr.open_dataset(path)
         except Exception as ex:
             logger.error("failed to load dataset", exc_info=ex)
             return
         logger.debug("loaded dataset\n%r", dataset)
 
-        self.new_results.emit(util.RtmResults(dataset))
+        results = util.RtmResults(dataset, path)
+        self.new_results.emit(results)
 
 
 class InteractiveNewSimulationProducer(SimulationProducer):
@@ -186,6 +191,8 @@ class InteractiveNewSimulationProducer(SimulationProducer):
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
+    tab_counter: ClassVar[Iterator[int]] = itertools.count(1)
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
@@ -212,7 +219,12 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
     def add_results(self, results: util.RtmResults) -> None:
         # Note: tab parent shouldn't be set.
         summary = ResultsSummaryDisplay(results)
-        self.addTab(summary, f"Results {self.tabBar().count()}")
+
+        if results.file is not None:
+            tab_name = results.file.name
+        else:
+            tab_name = f"*Unsaved {next(self.tab_counter)}"
+        self.addTab(summary, tab_name)
 
 
 class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
