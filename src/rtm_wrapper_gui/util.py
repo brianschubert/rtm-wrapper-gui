@@ -38,6 +38,10 @@ class WatchedBox(QtCore.QObject, Generic[T]):
 
     @value.setter
     def value(self, value: T) -> None:
+        self.set_value(value)
+
+    @QtCore.Slot(object)
+    def set_value(self, value: T) -> None:
         self._value = value
         self.value_changed.emit(self._value)
 
