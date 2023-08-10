@@ -37,6 +37,7 @@ preview = false
 # isort config.
 [tool.isort]
 profile = "black"
+known_first_party = ["rtm_wrapper"]
 
 [build-system]
 requires = ["poetry-core"]
