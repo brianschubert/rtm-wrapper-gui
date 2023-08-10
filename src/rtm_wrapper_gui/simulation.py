@@ -9,8 +9,8 @@ import pathlib
 
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
-from rtm_wrapper.engines.base import RTMEngine
 
+from rtm_wrapper.engines.base import RTMEngine
 from rtm_wrapper_gui import util
 
 
@@ -62,14 +62,35 @@ class SimulationProducerTabs(SimulationProducer):
 class FileSimulationProducer(SimulationProducer):
     browse_button: QtWidgets.QPushButton
 
+    file_tree: QtWidgets.QTreeView
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
 
-        self.browse_button = QtWidgets.QPushButton()
+        self.browse_button = QtWidgets.QPushButton(self)
         self.browse_button.setText("Select results file")
         layout.addWidget(self.browse_button)
+
+        logger = logging.getLogger(__name__)
+
+        self.file_tree = QtWidgets.QTreeView(self)
+        model = QtWidgets.QFileSystemModel()
+        model.setRootPath(QtCore.QDir.currentPath())
+        self.file_tree.setModel(model)
+        self.file_tree.expand(model.index(QtCore.QDir.currentPath()))
+        layout.addWidget(self.file_tree)
+        self.file_tree.doubleClicked.connect(
+            lambda *args: logger.info("double clicked %r", args)
+        )
+        self.file_tree.header().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        for path in reversed(pathlib.Path.cwd().parents):
+            logger.debug("path %r", path)
+            self.file_tree.expand(model.index(str(path)))
 
         self.browse_button.clicked.connect(self._on_browse_button_clicked)
 
