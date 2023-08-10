@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import logging.config
+import pathlib
 import subprocess
 from dataclasses import dataclass
 from typing import Final, Generic, TypeVar
@@ -21,6 +22,7 @@ T = TypeVar("T")
 @dataclass
 class RtmResults:
     dataset: xr.Dataset
+    file: pathlib.Path | None = None
 
 
 class WatchedBox(QtCore.QObject, Generic[T]):
