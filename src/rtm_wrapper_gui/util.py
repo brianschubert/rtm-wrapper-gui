@@ -8,16 +8,38 @@ import importlib.metadata
 import logging.config
 import subprocess
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, Generic, TypeVar
 
 import xarray as xr
+from PySide6 import QtCore
 
 DISTRIBUTION_NAME: Final[str] = "rtm_wrapper_gui"
+
+T = TypeVar("T")
 
 
 @dataclass
 class RtmResults:
     dataset: xr.Dataset
+
+
+class WatchedBox(QtCore.QObject, Generic[T]):
+    _value: T
+
+    value_changed = QtCore.Signal(object)
+
+    def __init__(self, initial_value: T) -> None:
+        self._value = initial_value
+        super().__init__()
+
+    @property
+    def value(self) -> T:
+        return self._value
+
+    @value.setter
+    def value(self, value: T) -> None:
+        self._value = value
+        self.value_changed.emit(self._value)
 
 
 def setup_debug_root_logging(level: int = logging.NOTSET) -> None:
