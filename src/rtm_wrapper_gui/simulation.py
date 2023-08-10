@@ -9,6 +9,7 @@ import pathlib
 
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
+from rtm_wrapper.engines.base import RTMEngine
 
 from rtm_wrapper_gui import util
 
@@ -96,6 +97,10 @@ class FileSimulationProducer(SimulationProducer):
         logger.debug("loaded dataset\n%r", dataset)
 
         self.new_results.emit(util.RtmResults(dataset))
+
+
+class InteractiveNewSimulationProducer(SimulationProducer):
+    known_engines: list[RTMEngine]
 
 
 class ResultsSummary(QtWidgets.QWidget):
