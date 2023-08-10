@@ -28,9 +28,9 @@ class WatchedBox(QtCore.QObject, Generic[T]):
 
     value_changed = QtCore.Signal(object)
 
-    def __init__(self, initial_value: T) -> None:
+    def __init__(self, initial_value: T, parent: QtCore.QObject | None = None) -> None:
         self._value = initial_value
-        super().__init__()
+        super().__init__(parent)
 
     @property
     def value(self) -> T:
