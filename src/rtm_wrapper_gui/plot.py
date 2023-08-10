@@ -4,14 +4,15 @@ import abc
 import logging
 import random
 import string
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional
 
 import numpy as np
 import xarray as xr
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
-from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import Qt
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import QModelIndex, Qt
 
 from rtm_wrapper_gui import util
 
@@ -157,11 +158,11 @@ class RtmResultsPlots(QtWidgets.QWidget):
         #     error.exec()
         #     return
         #
-        # self.figure_widget.draw.emit()
+        self.figure_widget.draw.emit()
 
-        self.controls.dimensions_selector.set_requested_dims(
-            random.sample(string.ascii_letters, 3)
-        )
+        # self.controls.dimensions_selector.set_requested_dims(
+        #     random.sample(string.ascii_letters, 3)
+        # )
 
         # # or raise
         # actived_plotter = self.controls.get_active_plotter()
@@ -205,6 +206,60 @@ class FixedDimDatasetPlotter(DatasetPlotter):
         ...
 
 
+class DataArrayDimensionsItemModel(QtCore.QAbstractItemModel):
+    dimension_richnames: dict[str, str]
+    """Mapping between requested dimension name and it's rich name."""
+
+    array: xr.DataArray
+
+    def __init__(
+        self,
+        array: xr.DataArray,
+        *args: Any,
+        richnames: Mapping[str, str] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if richnames is None:
+            richnames = {}
+
+        self.array = array
+        self.dimension_richnames = dict(richnames)
+        super().__init__(*args, **kwargs)
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return 3
+
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return 5
+
+    def index(
+        self, row: int, column: int, parent: QModelIndex = QModelIndex()
+    ) -> QModelIndex:
+        return self.createIndex(row, column, parent)
+
+    def data(
+        self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole
+    ) -> Any:
+        if role == Qt.ItemDataRole.DisplayRole:
+            return f"item {index.row()} {index.column()}"
+
+    def parent(self, child: QModelIndex) -> QModelIndex:
+        return self.createIndex(child.column(), 0)
+
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        cols = [f"Col #{i}" for i in range(self.columnCount())]
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
+                return cols[section]
+            if orientation == Qt.Orientation.Vertical:
+                return cols[section]
+
+
 class PlotterRegistry:
     """
     Registry of dataset plotters that the plot controls can offer to the user.
@@ -224,9 +279,11 @@ class PlotControls(QtWidgets.QWidget):
 
     plotter_selector: QtWidgets.QComboBox
 
-    dimensions_selector: DimensionSelector
+    # dimensions_selector: DimensionSelector
 
-    reset_controls = QtCore.Slot()
+    dimensions_columns: QtWidgets.QColumnView
+
+    reset_controls = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -243,8 +300,10 @@ class PlotControls(QtWidgets.QWidget):
         self.plotter_selector = QtWidgets.QComboBox(self)
         layout.addWidget(self.plotter_selector)
 
-        self.dimensions_selector = DimensionSelector(self)
-        layout.addWidget(self.dimensions_selector)
+        # self.dimensions_selector = DimensionSelector(self)
+        # layout.addWidget(self.dimensions_selector)
+        self.dimensions_columns = QtWidgets.QColumnView(self)
+        self.dimensions_columns.setModel(DataArrayDimensionsItemModel(xr.DataArray()))
 
 
 class DimensionSelector(QtWidgets.QGroupBox):
