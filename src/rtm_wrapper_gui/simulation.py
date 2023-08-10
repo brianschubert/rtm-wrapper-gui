@@ -19,10 +19,18 @@ from rtm_wrapper_gui import util
 class SimulationPanel(QtWidgets.QWidget):
     sim_producers: SimulationProducerTabs
 
-    summary: ResultsSummary
+    results_tabs: ResultsTabSelection()
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    active_results: util.WatchedBox[util.RtmResults]
+
+    def __init__(
+        self,
+        results_box: util.WatchedBox[util.RtmResults],
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
+
+        self.active_results = results_box
 
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
@@ -30,10 +38,21 @@ class SimulationPanel(QtWidgets.QWidget):
         self.sim_producers = SimulationProducerTabs()
         layout.addWidget(self.sim_producers)
 
-        self.summary = ResultsSummary()
-        layout.addWidget(self.summary)
+        self.results_tabs = ResultsTabSelection()
+        layout.addWidget(self.results_tabs)
 
-        self.sim_producers.new_results.connect(self.summary.summarize_results)
+        self.sim_producers.new_results.connect(self.results_tabs.add_results)
+        self.results_tabs.currentChanged[int].connect(self._on_result_selection_change)
+
+    @QtCore.Slot(int)
+    def _on_result_selection_change(self, tab_index: int) -> None:
+        logger = logging.getLogger(__name__)
+        logger.debug("selected results index %r", tab_index)
+        if tab_index == -1:
+            self.active_results.value = None
+        else:
+            display: ResultsSummaryDisplay = self.results_tabs.widget(tab_index)
+            self.active_results.value = display.results
 
 
 class SimulationProducer(QtWidgets.QWidget):
@@ -166,20 +185,45 @@ class InteractiveNewSimulationProducer(SimulationProducer):
     known_engines: list[RTMEngine]
 
 
-class ResultsSummary(QtWidgets.QWidget):
-    temp_textedit: QtWidgets.QTextEdit
-
+class ResultsTabSelection(QtWidgets.QTabWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
-        layout = QtWidgets.QVBoxLayout()
-        self.setLayout(layout)
 
-        self.temp_textedit = QtWidgets.QTextEdit()
-        self.temp_textedit.setText("No simulation results loaded.")
-        self.temp_textedit.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
-        self.temp_textedit.setFont(QtGui.QFont("monospace"))
-        layout.addWidget(self.temp_textedit)
+        # Make tabs closable.
+        # Closing tabs automatically changes the current tab.
+        self.setTabsClosable(True)
+        self.tabCloseRequested[int].connect(self.close_tab)
+
+    @QtCore.Slot()
+    def close_tab(self, index: int) -> None:
+        # TODO maybe set background when all tabs are closed
+        # https://stackoverflow.com/q/73530138/11082165
+
+        widget = self.widget(index)
+        widget.deleteLater()
+        # Note: don't use removeTab - https://www.qtcentre.org/threads/35202-Removing-a-tab-in-QTabWidget-removes-tabs-to-right-as-well
+        # self.tabBar().removeTab(index)
+
+        # if self.tabBar().count() == 1:
+        #     pass
+        # TODO maybe add tab for help splash?
 
     @QtCore.Slot(util.RtmResults)
-    def summarize_results(self, results: util.RtmResults) -> None:
-        self.temp_textedit.setText(repr(results))
+    def add_results(self, results: util.RtmResults) -> None:
+        # Note: tab parent shouldn't be set.
+        summary = ResultsSummaryDisplay(results)
+        self.addTab(summary, f"Results {self.tabBar().count()}")
+
+
+class ResultsSummaryDisplay(QtWidgets.QTextEdit):
+    results: util.RtmResults
+
+    def __init__(
+        self, results: util.RtmResults, parent: QtWidgets.QWidget | None = None
+    ) -> None:
+        super().__init__(parent)
+        self.results = results
+
+        self.setText(repr(results))
+        self.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        self.setFont(QtGui.QFont("monospace"))
