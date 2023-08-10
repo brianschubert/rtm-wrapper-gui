@@ -51,7 +51,7 @@ class SimulationPanel(QtWidgets.QWidget):
         if tab_index == -1:
             self.active_results.value = None
         else:
-            display: ResultsSummaryDisplay = self.results_tabs.widget(tab_index)
+            display: ResultsSummaryDisplay = self.results_tabs.widget(tab_index)  # type: ignore
             self.active_results.value = display.results
 
 
@@ -215,7 +215,7 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
         self.addTab(summary, f"Results {self.tabBar().count()}")
 
 
-class ResultsSummaryDisplay(QtWidgets.QTextEdit):
+class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
     results: util.RtmResults
 
     def __init__(
@@ -224,6 +224,40 @@ class ResultsSummaryDisplay(QtWidgets.QTextEdit):
         super().__init__(parent)
         self.results = results
 
-        self.setText(repr(results))
-        self.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
-        self.setFont(QtGui.QFont("monospace"))
+        self.setColumnCount(2)
+        self.setHeaderLabels(["Field", "Value"])
+        self.header().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        top_items = [
+            self._load_outputs(),
+            self._load_attributes(),
+        ]
+        self.insertTopLevelItems(0, top_items)
+        # self.expandAll()
+
+        for col in range(self.columnCount()):
+            self.resizeColumnToContents(col)
+
+    def _load_outputs(self) -> QtWidgets.QTreeWidgetItem:
+        top_item = QtWidgets.QTreeWidgetItem(
+            ["Outputs", f"({len(self.results.dataset.data_vars)})"],
+        )
+
+        for name in sorted(self.results.dataset.data_vars.keys()):
+            leaf = QtWidgets.QTreeWidgetItem([name])
+            top_item.addChild(leaf)
+
+        return top_item
+
+    def _load_attributes(self) -> QtWidgets.QTreeWidgetItem:
+        top_item = QtWidgets.QTreeWidgetItem(
+            ["Attributes", f"({len(self.results.dataset.attrs)})"],
+        )
+
+        for name, value in self.results.dataset.attrs.items():
+            leaf = QtWidgets.QTreeWidgetItem([name, value])
+            top_item.addChild(leaf)
+
+        return top_item

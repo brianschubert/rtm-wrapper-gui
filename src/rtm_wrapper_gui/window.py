@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from PySide6 import QtWidgets
@@ -24,6 +25,9 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(*args, **kwargs)
 
         self.active_results = util.WatchedBox(None, self)
+        self.active_results.value_changed.connect(
+            lambda: logging.debug("value changed")
+        )
 
         self._init_window()
         self._init_central_widget()
@@ -57,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Add main vertical splitter.
         top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
-        top_splitter.addWidget(SimulationPanel(self))
+        top_splitter.addWidget(SimulationPanel(self.active_results, self))
         # top_splitter.addWidget(self._init_data_widget())
         top_splitter.addWidget(self._init_plot_widget())
         top_splitter.setHandleWidth(10)
