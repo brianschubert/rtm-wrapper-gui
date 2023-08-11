@@ -277,7 +277,7 @@ engine = PySixSEngine()
             [
                 (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
                 ("([\"'])[^\\1]*?\\1", string_format),
-                ("[0-9]+", number_format),
+                (r"\b[0-9]+\b", number_format),
                 # TODO improve handling with quotes.
                 # Only highlight comments on lines that don't contain ' or ".
                 (r"^(?:[^'\"]*)\#.*$", comment_format),
