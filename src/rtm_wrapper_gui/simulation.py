@@ -232,6 +232,25 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
     ) -> None:
         super().__init__(parent)
 
+        self.setAcceptRichText(False)
+        self.setFont(QtGui.QFont("Monospace"))
+        self.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        self.setText(
+            """\
+import numpy as np
+from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
+
+sweep = SweepSimulation(
+    {
+        "wavelength__value": np.arange(0.2, 2.5, 0.005),
+    },
+    base=pysixs_default_inputs(),
+)
+
+engine = PySixSEngine()
+"""
+        )
+
         keyword_format = QtGui.QTextCharFormat()
         keyword_format.setFontWeight(QtGui.QFont.Weight.Bold)
         keyword_format.setForeground(Qt.GlobalColor.darkBlue)
