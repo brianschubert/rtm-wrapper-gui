@@ -205,16 +205,24 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
     def add_results(self, results: util.RtmResults) -> None:
         # Note: tab parent shouldn't be set.
         summary = ResultsSummaryDisplay(results)
-
+        summary.details_changed.connect(self.refresh_current_label)
         if results.file is not None:
             tab_name = results.file.name
         else:
             tab_name = f"*Unsaved {next(self.tab_counter)}"
         self.addTab(summary, tab_name)
 
+    @QtCore.Slot()
+    def refresh_current_label(self) -> None:
+        idx = self.currentIndex()
+        widget: ResultsSummaryDisplay = self.currentWidget()  # type: ignore
+        self.setTabText(idx, widget.results.file.name)
+
 
 class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
     results: util.RtmResults
+
+    details_changed = QtCore.Signal()
 
     def __init__(
         self, results: util.RtmResults, parent: QtWidgets.QWidget | None = None
@@ -248,6 +256,11 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
                 "Select save location", "netCDF File (*.nc);;Any File (*)"
             )
             self.results.dataset.to_netcdf(selected_path)
+            self.results.file = selected_path
+
+            _old_fileinfo = self.takeTopLevelItem(0)
+            self.insertTopLevelItem(0, self._load_fileinfo())
+            self.details_changed.emit()
 
     def _load_fileinfo(self) -> QtWidgets.QTreeWidgetItem:
         if self.results.file is None:
