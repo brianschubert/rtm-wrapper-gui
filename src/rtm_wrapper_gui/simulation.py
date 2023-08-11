@@ -264,11 +264,18 @@ engine = PySixSEngine()
         number_format = QtGui.QTextCharFormat()
         number_format.setForeground(Qt.GlobalColor.blue)
 
+        comment_format = QtGui.QTextCharFormat()
+        comment_format.setForeground(Qt.GlobalColor.darkGray)
+        comment_format.setFontItalic(True)
+
         self._highlighter = RegexHighlighter(
             [
                 (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
                 ("([\"'])[^\\1]*?\\1", string_format),
                 ("[0-9]+", number_format),
+                # TODO improve handling with quotes.
+                # Only highlight comments on lines that don't contain ' or ".
+                (r"^(?:[^'\"]*)\#.*$", comment_format),
             ],
             self.document(),
         )
