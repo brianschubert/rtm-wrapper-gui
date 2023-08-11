@@ -5,6 +5,7 @@ GUI elements for running simulations and loading simulation results.
 from __future__ import annotations
 
 import ast
+import builtins
 import datetime
 import itertools
 import keyword
@@ -263,6 +264,9 @@ engine = PySixSEngine()
         keyword_format.setFontWeight(QtGui.QFont.Weight.Bold)
         keyword_format.setForeground(Qt.GlobalColor.darkBlue)
 
+        builtins_format = QtGui.QTextCharFormat()
+        builtins_format.setForeground(Qt.GlobalColor.darkMagenta)
+
         string_format = QtGui.QTextCharFormat()
         string_format.setForeground(Qt.GlobalColor.darkGreen)
 
@@ -279,6 +283,7 @@ engine = PySixSEngine()
         self._highlighter = RegexHighlighter(
             [
                 (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
+                (rf"\b(?:{'|'.join(dir(builtins))})\b", builtins_format),
                 ("([\"'])[^\\1]*?\\1", string_format),
                 (r"\b[0-9]+\b", number_format),
                 # TODO improve handling with quotes.
