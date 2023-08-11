@@ -347,12 +347,25 @@ class ScriptSimulationProducer(SimulationProducer):
             dialog.exec()
             return
 
-        # assignments = [
-        #     target.id
-        #     for node in tree.body
-        #     if isinstance(node, ast.Assign)
-        #     for target in node.targets
-        # ]
+        assignments = [
+            target.id
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            for target in node.targets
+        ]
+        for ident in self.script_textedit._SPECIAL_IDENTS:
+            if ident not in assignments:
+                dialog = QtWidgets.QMessageBox()
+                dialog.setWindowTitle("Missing required assigment")
+                dialog.setFont(QtGui.QFont("Monospace"))
+                dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+                dialog.setText(
+                    f"Missing assignment to required identifier '{ident}'"
+                    f"\n\n"
+                    f"Make sure the script includes and assignment of the form '{ident} = ...'"
+                )
+                dialog.exec()
+                return
 
         dialog = QtWidgets.QMessageBox()
         dialog.setWindowTitle("Script OK")
