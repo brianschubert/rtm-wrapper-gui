@@ -236,6 +236,11 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
         self.setIndentation(12)
+        self.setStyleSheet(
+            """
+            QTreeView::item { padding: 2px 0px 2px 0px }
+            """
+        )
 
         top_items = [
             self._load_fileinfo(),
