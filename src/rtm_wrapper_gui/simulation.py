@@ -380,6 +380,13 @@ class ScriptSimulationProducer(SimulationProducer):
         self.format_button.clicked.connect(self.format_script)
 
         self.exec_worker.finished[util.ExecJob].connect(self._on_exec_job_finished)
+        self.exec_worker.exception.connect(
+            lambda ex: QtWidgets.QMessageBox.warning(
+                self,
+                "Error running script",
+                f"Exception raised during script interpretation: <pre>{ex}</pre>",
+            )
+        )
 
         QtCore.QCoreApplication.instance().aboutToQuit.connect(self._on_about_to_quit)
 
@@ -482,7 +489,6 @@ class ScriptSimulationProducer(SimulationProducer):
 
         self.exec_worker.finished.connect(progress_bar.close)
         self.exec_worker.exception.connect(progress_bar.close)
-        # TODO handle exceptions during execution
         self.exec_worker.send_job.emit(job)
 
     def _on_exec_job_finished(self, job: util.ExecJob) -> None:
