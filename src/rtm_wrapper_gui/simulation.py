@@ -4,12 +4,14 @@ GUI elements for running simulations and loading simulation results.
 
 from __future__ import annotations
 
+import ast
 import datetime
 import itertools
 import keyword
 import logging
 import pathlib
 import re
+import traceback
 from typing import Any, ClassVar, Iterable, Iterator
 
 import xarray as xr
@@ -238,6 +240,7 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
         self.setText(
             """\
 import numpy as np
+
 from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
 
 sweep = SweepSimulation(
@@ -310,7 +313,40 @@ class ScriptSimulationProducer(SimulationProducer):
         button_layout.addWidget(self.check_button)
 
     def _init_signals(self) -> None:
-        pass
+        self.check_button.clicked.connect(self._on_check)
+
+    def _on_check(self) -> None:
+        logger = logging.getLogger(__name__)
+        try:
+            tree = ast.parse(self.script_textedit.toPlainText())
+        except SyntaxError as ex:
+            tb_exc = traceback.TracebackException.from_exception(ex)
+            dialog = QtWidgets.QMessageBox()
+            dialog.setWindowTitle("Script syntax error")
+            dialog.setFont(QtGui.QFont("Monospace"))
+            dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            dialog.setText(
+                f"Script contains a syntax error!"
+                f"\n\n"
+                f"<user script>:{tb_exc.lineno}:{tb_exc.offset}: {tb_exc.text}"
+            )
+            dialog.setDetailedText("\n".join(tb_exc.format()))
+            dialog.exec()
+            return
+
+        # assignments = [
+        #     target.id
+        #     for node in tree.body
+        #     if isinstance(node, ast.Assign)
+        #     for target in node.targets
+        # ]
+
+        dialog = QtWidgets.QMessageBox()
+        dialog.setWindowTitle("Script OK")
+        dialog.setFont(QtGui.QFont("Monospace"))
+        dialog.setText("No issues found!")
+        dialog.setIcon(QtWidgets.QMessageBox.Icon.Information)
+        dialog.exec()
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
