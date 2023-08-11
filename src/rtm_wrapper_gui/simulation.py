@@ -294,6 +294,18 @@ engine = PySixSEngine()
             self.document(),
         )
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        # Replace tabs with spaces.
+        # https://stackoverflow.com/q/45880941/11082165
+        if event.key() == Qt.Key.Key_Tab:
+            event = QtGui.QKeyEvent(
+                event.type(),
+                Qt.Key.Key_Space,
+                event.modifiers(),
+                "    ",
+            )
+        super().keyPressEvent(event)
+
 
 class ScriptSimulationProducer(SimulationProducer):
     script_textedit: ScriptTextEdit
@@ -415,15 +427,23 @@ class ScriptSimulationProducer(SimulationProducer):
             )
 
     def _on_run_click(self) -> None:
-        logger = logging.getLogger(__name__)
-        if not self.check_script():
-            return
-        logger.debug("run")
+        script_locals = {}
+        script_globals = {}
+
         reply = QtWidgets.QMessageBox.question(
             self,
             "Confirm simulation",
             "Run simulation?",
         )
+        if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+            exec(
+                compile(
+                    self.script_textedit.toPlainText(), "<user script>", mode="exec"
+                ),
+                script_globals,
+                script_locals,
+            )
+            print(script_locals)
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
