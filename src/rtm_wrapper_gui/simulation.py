@@ -12,7 +12,7 @@ import logging
 import pathlib
 import re
 import traceback
-from typing import Any, ClassVar, Iterable, Iterator
+from typing import Any, ClassVar, Final, Iterable, Iterator
 
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -228,6 +228,8 @@ class RegexHighlighter(QtGui.QSyntaxHighlighter):
 class ScriptTextEdit(QtWidgets.QTextEdit):
     _highlighter: RegexHighlighter
 
+    _SPECIAL_IDENTS: Final = ["sweep", "engine"]
+
     def __init__(
         self,
         parent: QtWidgets.QWidget | None = None,
@@ -268,6 +270,9 @@ engine = PySixSEngine()
         comment_format.setForeground(Qt.GlobalColor.darkGray)
         comment_format.setFontItalic(True)
 
+        special_format = QtGui.QTextCharFormat()
+        special_format.setFontWeight(QtGui.QFont.Weight.Bold)
+
         self._highlighter = RegexHighlighter(
             [
                 (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
@@ -276,6 +281,7 @@ engine = PySixSEngine()
                 # TODO improve handling with quotes.
                 # Only highlight comments on lines that don't contain ' or ".
                 (r"^(?:[^'\"]*)\#.*$", comment_format),
+                (rf"\b(?:{'|'.join(self._SPECIAL_IDENTS)})\b", special_format),
             ],
             self.document(),
         )
