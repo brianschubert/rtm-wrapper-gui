@@ -15,6 +15,8 @@ from rtm_wrapper_gui.simulation import SimulationPanel
 class MainWindow(QtWidgets.QMainWindow):
     central_widget: QtWidgets.QWidget
 
+    simulation_panel: SimulationPanel
+
     figure_widget: FigureWidget
 
     plot_button: QtWidgets.QPushButton
@@ -60,12 +62,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         # Add main vertical splitter.
-        top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
-        top_splitter.addWidget(SimulationPanel(self.active_results, self))
+        top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal, self)
+        self.simulation_panel = SimulationPanel(self.active_results, self)
+        top_splitter.addWidget(self.simulation_panel)
         # top_splitter.addWidget(self._init_data_widget())
         top_splitter.addWidget(self._init_plot_widget())
         top_splitter.setHandleWidth(10)
         top_layout.addWidget(top_splitter)
+
+        # Only stretch plots.
+        top_splitter.setStretchFactor(0, 0)
+        top_splitter.setStretchFactor(1, 1)
+        # Note: not actual sizes. Describes how missing space is distributed.
+        top_splitter.setSizes([500, 500])
 
         # Set stylesheet.
         self.central_widget.setStyleSheet(
