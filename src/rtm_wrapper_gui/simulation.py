@@ -318,9 +318,13 @@ class ScriptSimulationProducer(SimulationProducer):
 
     format_button: QtWidgets.QPushButton
 
+    exec_worker: util.PythonExecWorker
+    exec_thread: QtCore.QThread
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self._init_widgets()
+        self._init_workers()
         self._init_signals()
 
     def _init_widgets(self) -> None:
@@ -358,10 +362,35 @@ class ScriptSimulationProducer(SimulationProducer):
         self.format_button.setText("Format")
         button_layout.addWidget(self.format_button)
 
+    def _init_workers(self) -> None:
+        self.exec_thread = QtCore.QThread()
+
+        self.exec_worker = util.PythonExecWorker()
+        self.exec_worker.moveToThread(self.exec_thread)
+
+        self.exec_thread.setObjectName(f"{self.__class__.__name__}-ExecWorker")
+        self.exec_thread.start()
+
+        # Make the Python thread name match the QThread objhect name.
+        util.ThreadNameSyncWorker.sync_thread_names(self.exec_thread)
+
     def _init_signals(self) -> None:
         self.check_button.clicked.connect(self.check_script)
         self.run_button.clicked.connect(self._on_run_click)
         self.format_button.clicked.connect(self.format_script)
+
+        self.exec_worker.finished[util.ExecJob].connect(self._on_exec_job_finished)
+
+        QtCore.QCoreApplication.instance().aboutToQuit.connect(self._on_about_to_quit)
+
+    @QtCore.Slot()
+    def _on_about_to_quit(self) -> None:
+        logger = logging.getLogger(__name__)
+        logger.debug("quitting exec thread")
+        self.exec_thread.quit()
+        logger.debug("waiting on exec thread")
+        self.exec_thread.wait()
+        logger.debug("exec thread terminated")
 
     @QtCore.Slot()
     def check_script(self) -> bool:
@@ -428,19 +457,11 @@ class ScriptSimulationProducer(SimulationProducer):
             )
 
     def _on_run_click(self) -> None:
-        logger = logging.getLogger(__name__)
-        script_locals = {}
-        script_globals = {}
-
-        logger.debug("interpreting user script")
         try:
-            # TODO run in background thread with spinning progress bar.
-            exec(
+            job = util.ExecJob(
                 compile(
                     self.script_textedit.toPlainText(), "<user script>", mode="exec"
                 ),
-                script_globals,
-                script_locals,
             )
         except Exception as ex:
             QtWidgets.QMessageBox.warning(
@@ -449,55 +470,112 @@ class ScriptSimulationProducer(SimulationProducer):
                 f"<pre>{ex}</pre>",
             )
             return
-        logger.debug("finished interpreting user script")
-
-        try:
-            sweep = script_locals["sweep"]
-        except KeyError:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Bad script",
-                "Script must define <tt>sweep</tt>",
-            )
-            return
-
-        try:
-            engine = script_locals["engine"]
-        except KeyError:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Bad script",
-                "Script must define <tt>engine</tt>",
-            )
-            return
-
-        if not isinstance(sweep, rtm_sim.SweepSimulation):
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Bad script",
-                "<tt>sweep</tt> must be an instance of <tt>SweepSimulation</tt>",
-            )
-            return
-
-        if not isinstance(engine, rtm_engines.RTMEngine):
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Bad script",
-                "<tt>engine</tt> must be an instance of <tt>RTMEngine</tt>",
-            )
-            return
-
-        reply = QtWidgets.QMessageBox.question(
-            self,
-            "Confirm simulation",
-            f"Requested simulation has {sweep.sweep_size} steps."
-            f"<br><br>"
-            f"{'<br>'.join(f'{dim_name}: {dim_size}' for dim_name, dim_size in sweep.sweep_spec.indexes.dims.items())}"
-            f"<br><br>"
-            f"Run simulation?",
+        progress_bar = QtWidgets.QProgressDialog(
+            "Interpreting script", "Cancel", 0, 0, self
         )
-        if reply == QtWidgets.QMessageBox.StandardButton.Yes:
-            pass
+        progress_bar.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_bar.setMinimumDuration(0)
+
+        progress_bar.setCancelButton(None)
+        progress_bar.show()
+        progress_bar.setValue(0)
+
+        self.exec_worker.finished.connect(progress_bar.close)
+        self.exec_worker.exception.connect(progress_bar.close)
+        # TODO handle exceptions during execution
+        self.exec_worker.send_job.emit(job)
+
+    def _on_exec_job_finished(self, job: util.ExecJob) -> None:
+        logger = logging.getLogger(__name__)
+        logger.debug("GOT FINISHED JOB %r", job.locals)
+
+        # worker = util.PythonExecWorker(
+        #     {},
+        #     {},
+        # )
+        # thread = QtCore.QThread()
+        # worker.moveToThread(thread)
+        # thread.started.connect(worker.exec)
+        # worker.done.connect(thread.quit)
+        # worker.done.connect(worker.deleteLater)
+        # thread.finished.connect(thread.deleteLater)
+        #
+        #
+        #
+        #
+        # logger.debug("interpreting user script")
+        # try:
+        #     logger.debug("starting exex")
+        #     thread.start()
+        #     logger.debug("waiting on exec")
+        #
+        #     while not thread.isFinished():
+        #         QtWidgets.QApplication.instance().processEvents()
+        #         time.sleep(0.01)
+        #     logger.debug("done")
+        #
+        #     script_locals = worker.locals
+        #     print(script_locals)
+        #
+        # except Exception as ex:
+        #     QtWidgets.QMessageBox.warning(
+        #         self,
+        #         "Cannot execute script",
+        #         f"<pre>{ex}</pre>",
+        #     )
+        #     return
+        # finally:
+        #     logger.debug("waiting")
+        #     thread.wait()
+        # logger.debug("finished interpreting user script")
+        #
+        # try:
+        #     sweep = script_locals["sweep"]
+        # except KeyError:
+        #     QtWidgets.QMessageBox.warning(
+        #         self,
+        #         "Bad script",
+        #         "Script must define <tt>sweep</tt>",
+        #     )
+        #     return
+        #
+        # try:
+        #     engine = script_locals["engine"]
+        # except KeyError:
+        #     QtWidgets.QMessageBox.warning(
+        #         self,
+        #         "Bad script",
+        #         "Script must define <tt>engine</tt>",
+        #     )
+        #     return
+        #
+        # if not isinstance(sweep, rtm_sim.SweepSimulation):
+        #     QtWidgets.QMessageBox.warning(
+        #         self,
+        #         "Bad script",
+        #         "<tt>sweep</tt> must be an instance of <tt>SweepSimulation</tt>",
+        #     )
+        #     return
+        #
+        # if not isinstance(engine, rtm_engines.RTMEngine):
+        #     QtWidgets.QMessageBox.warning(
+        #         self,
+        #         "Bad script",
+        #         "<tt>engine</tt> must be an instance of <tt>RTMEngine</tt>",
+        #     )
+        #     return
+        #
+        # reply = QtWidgets.QMessageBox.question(
+        #     self,
+        #     "Confirm simulation",
+        #     f"Requested simulation has {sweep.sweep_size} steps."
+        #     f"<br><br>"
+        #     f"{'<br>'.join(f'<tt>{dim_name}: {dim_size}</tt>' for dim_name, dim_size in sweep.sweep_spec.indexes.dims.items())}"
+        #     f"<br><br>"
+        #     f"Run simulation?",
+        # )
+        # if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+        #     pass
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
