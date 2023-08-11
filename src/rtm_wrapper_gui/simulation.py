@@ -72,6 +72,20 @@ class SimulationProducerTabs(QtWidgets.QTabWidget):
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "File",
         )
+        self.addTab(
+            InteractiveNewSimulationProducer(),
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_FileDialogDetailedView
+            ),
+            "Run",
+        )
+        self.addTab(
+            ScriptSimulationProducer(),
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_ToolBarHorizontalExtensionButton,
+            ),
+            "Script",
+        )
 
         for idx in range(self.count()):
             self.widget(idx).new_results.connect(self.new_results)
@@ -174,6 +188,48 @@ class FileSimulationProducer(SimulationProducer, QtWidgets.QWidget):
 
 class InteractiveNewSimulationProducer(SimulationProducer):
     known_engines: list[RTMEngine]
+
+
+class ScriptSimulationProducer(SimulationProducer):
+    script_textedit: QtWidgets.QTextEdit
+
+    run_button: QtWidgets.QPushButton
+
+    check_button: QtWidgets.QPushButton
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._init_widgets()
+        self._init_signals()
+
+    def _init_widgets(self) -> None:
+        layout = QtWidgets.QVBoxLayout()
+        self.setLayout(layout)
+
+        self.script_textedit = QtWidgets.QTextEdit()
+        layout.addWidget(self.script_textedit)
+
+        button_layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(button_layout)
+
+        self.run_button = QtWidgets.QPushButton()
+        self.run_button.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_CommandLink)
+        )  # SP_MediaPlay
+        self.run_button.setText("Run")
+        button_layout.addWidget(self.run_button)
+
+        self.check_button = QtWidgets.QPushButton()
+        self.check_button.setIcon(
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogHelpButton  # SP_MessageBoxQuestion
+            )
+        )  # SP_MediaPlay
+        self.check_button.setText("Check")
+        button_layout.addWidget(self.check_button)
+
+    def _init_signals(self) -> None:
+        pass
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
