@@ -21,6 +21,8 @@ import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
+import rtm_wrapper.engines.base as rtm_engines
+import rtm_wrapper.simulation as rtm_sim
 from rtm_wrapper.engines.base import RTMEngine
 from rtm_wrapper_gui import util
 
@@ -395,7 +397,6 @@ class ScriptSimulationProducer(SimulationProducer):
                     f"<br><br>"
                     f"Make sure the script includes and assignment of the form <pre>{ident} = ...</pre>",
                 )
-                # dialog.exec()
                 return False
 
         QtWidgets.QMessageBox.information(self, "Script OK", "No issues found!")
@@ -427,15 +428,13 @@ class ScriptSimulationProducer(SimulationProducer):
             )
 
     def _on_run_click(self) -> None:
+        logger = logging.getLogger(__name__)
         script_locals = {}
         script_globals = {}
 
-        reply = QtWidgets.QMessageBox.question(
-            self,
-            "Confirm simulation",
-            "Run simulation?",
-        )
-        if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+        logger.debug("interpreting user script")
+        try:
+            # TODO run in background thread with spinning progress bar.
             exec(
                 compile(
                     self.script_textedit.toPlainText(), "<user script>", mode="exec"
@@ -443,7 +442,62 @@ class ScriptSimulationProducer(SimulationProducer):
                 script_globals,
                 script_locals,
             )
-            print(script_locals)
+        except Exception as ex:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Cannot execute script",
+                f"<pre>{ex}</pre>",
+            )
+            return
+        logger.debug("finished interpreting user script")
+
+        try:
+            sweep = script_locals["sweep"]
+        except KeyError:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Bad script",
+                "Script must define <tt>sweep</tt>",
+            )
+            return
+
+        try:
+            engine = script_locals["engine"]
+        except KeyError:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Bad script",
+                "Script must define <tt>engine</tt>",
+            )
+            return
+
+        if not isinstance(sweep, rtm_sim.SweepSimulation):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Bad script",
+                "<tt>sweep</tt> must be an instance of <tt>SweepSimulation</tt>",
+            )
+            return
+
+        if not isinstance(engine, rtm_engines.RTMEngine):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Bad script",
+                "<tt>engine</tt> must be an instance of <tt>RTMEngine</tt>",
+            )
+            return
+
+        reply = QtWidgets.QMessageBox.question(
+            self,
+            "Confirm simulation",
+            f"Requested simulation has {sweep.sweep_size} steps."
+            f"<br><br>"
+            f"{'<br>'.join(f'{dim_name}: {dim_size}' for dim_name, dim_size in sweep.sweep_spec.indexes.dims.items())}"
+            f"<br><br>"
+            f"Run simulation?",
+        )
+        if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+            pass
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
