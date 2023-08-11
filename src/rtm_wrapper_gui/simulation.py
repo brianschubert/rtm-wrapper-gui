@@ -507,7 +507,7 @@ class ScriptSimulationProducer(SimulationProducer):
             )
             return
         progress_bar = QtWidgets.QProgressDialog(
-            "Interpreting script", "Cancel", 0, 0, self
+            "Interpreting script", None, 0, 0, self
         )
         progress_bar.setWindowModality(Qt.WindowModality.WindowModal)
         progress_bar.setMinimumDuration(0)
@@ -568,11 +568,12 @@ class ScriptSimulationProducer(SimulationProducer):
         )
         if reply == QtWidgets.QMessageBox.StandardButton.Yes:
             progress_bar = QtWidgets.QProgressDialog(
-                "Running Simulation", "Cancel", 0, sweep.sweep_size, self
+                "Running Simulation", None, 0, sweep.sweep_size, self
             )
             progress_bar.setWindowModality(Qt.WindowModality.WindowModal)
             progress_bar.setMinimumDuration(0)
             progress_bar.setValue(0)
+            # progress_bar.setCancelButton(None)
 
             self.sim_worker.results.connect(progress_bar.deleteLater)
             self.sim_worker.exception.connect(progress_bar.deleteLater)
