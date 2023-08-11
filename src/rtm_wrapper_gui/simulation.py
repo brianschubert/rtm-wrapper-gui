@@ -326,26 +326,27 @@ class ScriptSimulationProducer(SimulationProducer):
         button_layout.addWidget(self.check_button)
 
     def _init_signals(self) -> None:
-        self.check_button.clicked.connect(self._on_check)
+        self.check_button.clicked.connect(self.check_script)
+        self.run_button.clicked.connect(self._on_run_click)
 
-    def _on_check(self) -> None:
-        logger = logging.getLogger(__name__)
+    @QtCore.Slot()
+    def check_script(self) -> bool:
         try:
             tree = ast.parse(self.script_textedit.toPlainText())
         except SyntaxError as ex:
             tb_exc = traceback.TracebackException.from_exception(ex)
-            dialog = QtWidgets.QMessageBox()
-            dialog.setWindowTitle("Script syntax error")
-            dialog.setFont(QtGui.QFont("Monospace"))
-            dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            dialog.setText(
+            pos = f":{tb_exc.lineno}:{tb_exc.offset}"
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Script syntax error",
                 f"Script contains a syntax error!"
-                f"\n\n"
-                f"<user script>:{tb_exc.lineno}:{tb_exc.offset}: {tb_exc.text}"
+                f"<br><br>"
+                f"<pre>"
+                f"&lt;user script&gt;{pos}:&nbsp;{tb_exc.text.replace(' ', '&nbsp;')}\n"
+                f"{'&nbsp;' * (14 + len(pos) + tb_exc.offset)}^"
+                f"<pre>",
             )
-            dialog.setDetailedText("\n".join(tb_exc.format()))
-            dialog.exec()
-            return
+            return False
 
         assignments = [
             target.id
@@ -355,24 +356,30 @@ class ScriptSimulationProducer(SimulationProducer):
         ]
         for ident in self.script_textedit._SPECIAL_IDENTS:
             if ident not in assignments:
-                dialog = QtWidgets.QMessageBox()
-                dialog.setWindowTitle("Missing required assigment")
-                dialog.setFont(QtGui.QFont("Monospace"))
-                dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-                dialog.setText(
-                    f"Missing assignment to required identifier '{ident}'"
-                    f"\n\n"
-                    f"Make sure the script includes and assignment of the form '{ident} = ...'"
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Missing required assigment",
+                    f"Missing assignment to required identifier <tt>{ident}</tt>"
+                    f"<br><br>"
+                    f"Make sure the script includes and assignment of the form <pre>{ident} = ...</pre>",
                 )
-                dialog.exec()
-                return
+                # dialog.exec()
+                return False
 
-        dialog = QtWidgets.QMessageBox()
-        dialog.setWindowTitle("Script OK")
-        dialog.setFont(QtGui.QFont("Monospace"))
-        dialog.setText("No issues found!")
-        dialog.setIcon(QtWidgets.QMessageBox.Icon.Information)
-        dialog.exec()
+        QtWidgets.QMessageBox.information(self, "Script OK", "No issues found!")
+
+        return True
+
+    def _on_run_click(self) -> None:
+        logger = logging.getLogger(__name__)
+        if not self.check_script():
+            return
+        logger.debug("run")
+        reply = QtWidgets.QMessageBox.question(
+            self,
+            "Confirm simulation",
+            "Run simulation?",
+        )
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
