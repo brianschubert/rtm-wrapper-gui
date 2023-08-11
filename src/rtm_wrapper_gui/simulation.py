@@ -14,6 +14,8 @@ import re
 import traceback
 from typing import Any, ClassVar, Final, Iterable, Iterator
 
+import black
+import isort
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
@@ -244,6 +246,7 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
 import numpy as np
 
 from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
+from rtm_wrapper.simulation import SweepSimulation
 
 sweep = SweepSimulation(
     {
@@ -294,6 +297,8 @@ class ScriptSimulationProducer(SimulationProducer):
 
     check_button: QtWidgets.QPushButton
 
+    format_button: QtWidgets.QPushButton
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self._init_widgets()
@@ -311,8 +316,10 @@ class ScriptSimulationProducer(SimulationProducer):
 
         self.run_button = QtWidgets.QPushButton()
         self.run_button.setIcon(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_CommandLink)
-        )  # SP_MediaPlay
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_CommandLink
+            )  # SP_MediaPlay
+        )
         self.run_button.setText("Run")
         button_layout.addWidget(self.run_button)
 
@@ -321,13 +328,21 @@ class ScriptSimulationProducer(SimulationProducer):
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogHelpButton  # SP_MessageBoxQuestion
             )
-        )  # SP_MediaPlay
+        )
         self.check_button.setText("Check")
         button_layout.addWidget(self.check_button)
+
+        self.format_button = QtWidgets.QPushButton()
+        self.format_button.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_BrowserReload)
+        )
+        self.format_button.setText("Format")
+        button_layout.addWidget(self.format_button)
 
     def _init_signals(self) -> None:
         self.check_button.clicked.connect(self.check_script)
         self.run_button.clicked.connect(self._on_run_click)
+        self.format_button.clicked.connect(self.format_script)
 
     @QtCore.Slot()
     def check_script(self) -> bool:
@@ -369,6 +384,30 @@ class ScriptSimulationProducer(SimulationProducer):
         QtWidgets.QMessageBox.information(self, "Script OK", "No issues found!")
 
         return True
+
+    @QtCore.Slot()
+    def format_script(self) -> None:
+        try:
+            formatted_text = black.format_str(
+                self.script_textedit.toPlainText(), mode=black.FileMode()
+            )
+            isort_config = isort.settings.Config(known_first_party=["rtm_wrapper"])
+            formatted_text = isort.code(formatted_text, config=isort_config)
+            self.script_textedit.setText(formatted_text)
+        except AttributeError as ex:
+            # Black does not currently expose a public API.
+            # The internal API that we're using may change unexpectedly.
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Failed to format script",
+                f"Unable to access black internal API. <pre>{ex}</pre>",
+            )
+        except black.parsing.InvalidInput as ex:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Failed to format script",
+                f"Failed to parse scrupt. <pre>{ex}</pre>",
+            )
 
     def _on_run_click(self) -> None:
         logger = logging.getLogger(__name__)
