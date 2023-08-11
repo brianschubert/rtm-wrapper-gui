@@ -5,13 +5,19 @@ QThread workers.
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import logging.config
 import threading
 import types
 from dataclasses import dataclass
 from typing import Any
 
+import xarray as xr
 from PySide6 import QtCore, QtTest, QtWidgets
+
+import rtm_wrapper.engines.base as rtm_engine
+import rtm_wrapper.execution as rtm_exec
+import rtm_wrapper.simulation as rtm_sim
 
 
 @dataclass
@@ -91,3 +97,54 @@ class ThreadNameSyncWorker(QtCore.QObject):
         current_thread.name = QtCore.QThread.currentThread().objectName()
 
         self.sync_finished.emit()
+
+
+@dataclass
+class SimulationJob:
+    engine: rtm_engine.RTMEngine
+    sweep: rtm_sim.SweepSimulation
+
+
+class RtmSimulationWorker(QtCore.QObject):
+    send_job = QtCore.Signal(SimulationJob)
+
+    progress_changed = QtCore.Signal(int)
+
+    results = QtCore.Signal(xr.Dataset)
+
+    exception = QtCore.Signal(Exception)
+
+    max_workers: int | None = None
+
+    def __init__(
+        self, max_workers: int | None = None, parent: QtWidgets.QWidget | None = None
+    ) -> None:
+        super().__init__(parent)
+
+        self.max_workers = max_workers
+
+        self.send_job[SimulationJob].connect(self.run_simulation)
+
+    @QtCore.Slot(SimulationJob)
+    def run_simulation(self, job: SimulationJob) -> None:
+        logger = logging.getLogger(__name__)
+        runner = rtm_exec.ConcurrentExecutor(self.max_workers)
+
+        step_counter = itertools.count(1)
+
+        logger.debug("running sweep")
+        try:
+            runner.run(
+                job.sweep,
+                job.engine,
+                step_callback=lambda _: self.progress_changed.emit(next(step_counter)),
+            )
+        except Exception as ex:
+            logger.warning("exception raised during simulation job", exc_info=ex)
+            self.exception.emit(ex)
+            return
+
+        logger.debug("finished sweep")
+
+        results = runner.collect_results()
+        self.results.emit(results)
