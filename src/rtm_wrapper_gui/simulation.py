@@ -24,7 +24,7 @@ from PySide6.QtCore import Qt
 import rtm_wrapper.engines.base as rtm_engines
 import rtm_wrapper.simulation as rtm_sim
 from rtm_wrapper.engines.base import RTMEngine
-from rtm_wrapper_gui import util
+from rtm_wrapper_gui import util, workers
 
 
 class SimulationPanel(QtWidgets.QWidget):
@@ -318,7 +318,7 @@ class ScriptSimulationProducer(SimulationProducer):
 
     format_button: QtWidgets.QPushButton
 
-    exec_worker: util.PythonExecWorker
+    exec_worker: workers.PythonExecWorker
     exec_thread: QtCore.QThread
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
@@ -365,21 +365,21 @@ class ScriptSimulationProducer(SimulationProducer):
     def _init_workers(self) -> None:
         self.exec_thread = QtCore.QThread()
 
-        self.exec_worker = util.PythonExecWorker()
+        self.exec_worker = workers.PythonExecWorker()
         self.exec_worker.moveToThread(self.exec_thread)
 
         self.exec_thread.setObjectName(f"{self.__class__.__name__}-ExecWorker")
         self.exec_thread.start()
 
         # Make the Python thread name match the QThread objhect name.
-        util.ThreadNameSyncWorker.sync_thread_names(self.exec_thread)
+        workers.ThreadNameSyncWorker.sync_thread_names(self.exec_thread)
 
     def _init_signals(self) -> None:
         self.check_button.clicked.connect(self.check_script)
         self.run_button.clicked.connect(self._on_run_click)
         self.format_button.clicked.connect(self.format_script)
 
-        self.exec_worker.finished[util.ExecJob].connect(self._on_exec_job_finished)
+        self.exec_worker.finished[workers.ExecJob].connect(self._on_exec_job_finished)
         self.exec_worker.exception.connect(
             lambda ex: QtWidgets.QMessageBox.warning(
                 self,
@@ -465,7 +465,7 @@ class ScriptSimulationProducer(SimulationProducer):
 
     def _on_run_click(self) -> None:
         try:
-            job = util.ExecJob(
+            job = workers.ExecJob(
                 compile(
                     self.script_textedit.toPlainText(), "<user script>", mode="exec"
                 ),
@@ -482,18 +482,15 @@ class ScriptSimulationProducer(SimulationProducer):
         )
         progress_bar.setWindowModality(Qt.WindowModality.WindowModal)
         progress_bar.setMinimumDuration(0)
-
-        progress_bar.setCancelButton(None)
-        progress_bar.show()
         progress_bar.setValue(0)
 
         self.exec_worker.finished.connect(progress_bar.close)
         self.exec_worker.exception.connect(progress_bar.close)
         self.exec_worker.send_job.emit(job)
 
-    def _on_exec_job_finished(self, job: util.ExecJob) -> None:
+    def _on_exec_job_finished(self, job: workers.ExecJob) -> None:
         logger = logging.getLogger(__name__)
-        logger.debug("GOT FINISHED JOB %r", job.locals)
+        logger.debug("received finished jobs with locals %r", list(job.locals.keys()))
 
         try:
             sweep = job.locals["sweep"]
