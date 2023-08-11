@@ -60,25 +60,20 @@ class SimulationProducer(QtWidgets.QWidget):
     new_results = QtCore.Signal(util.RtmResults)
 
 
-class SimulationProducerTabs(SimulationProducer):
-    tabs: QtWidgets.QTabWidget
+class SimulationProducerTabs(QtWidgets.QTabWidget):
+    new_results = QtCore.Signal(util.RtmResults)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
-        layout = QtWidgets.QVBoxLayout()
-        self.setLayout(layout)
 
-        self.tabs = QtWidgets.QTabWidget()
-        layout.addWidget(self.tabs)
-
-        self.tabs.addTab(
+        self.addTab(
             FileSimulationProducer(),
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
             "File",
         )
 
-        for idx in range(self.tabs.count()):
-            self.tabs.widget(idx).new_results.connect(self.new_results)
+        for idx in range(self.count()):
+            self.widget(idx).new_results.connect(self.new_results)
 
 
 class DataFileSystemModel(QtWidgets.QFileSystemModel):
@@ -115,7 +110,7 @@ class DataFileSystemModel(QtWidgets.QFileSystemModel):
         return file_info.isFile() and file_info.suffix() in self.data_suffixes
 
 
-class FileSimulationProducer(SimulationProducer):
+class FileSimulationProducer(SimulationProducer, QtWidgets.QWidget):
     browse_button: QtWidgets.QPushButton
 
     file_tree: QtWidgets.QTreeView
@@ -154,21 +149,11 @@ class FileSimulationProducer(SimulationProducer):
 
     @QtCore.Slot()
     def _on_browse_button_clicked(self) -> None:
-        logger = logging.getLogger(__name__)
-        dialog = QtWidgets.QFileDialog()
-
-        selected_file, _selected_filter = dialog.getOpenFileName(
-            None,
-            "Select results file",
-            str(pathlib.Path.cwd()),
-            "netCDF File (*.nc);;Any File (*)",
+        selected_file = _show_open_file_dialog(
+            caption="Select results file", filter="netCDF File (*.nc);;Any File (*)"
         )
-        if selected_file == "":
-            # Dialog was closed / cancelled.
-            logger.debug("file selection cancelled")
-            return
-
-        self._load_dataset(selected_file)
+        if selected_file is not None:
+            self._load_dataset(selected_file)
 
     def _load_dataset(self, file: str | pathlib.Path) -> None:
         logger = logging.getLogger(__name__)
@@ -252,6 +237,16 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         for col in range(self.columnCount()):
             self.resizeColumnToContents(col)
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if (
+            event.key() == Qt.Key.Key_S
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
+            selected_path = _show_save_file_dialog(
+                "Select save location", "netCDF File (*.nc);;Any File (*)"
+            )
+            self.results.dataset.to_netcdf(selected_path)
+
     def _load_outputs(self) -> QtWidgets.QTreeWidgetItem:
         top_item = QtWidgets.QTreeWidgetItem(
             ["Outputs", f"({len(self.results.dataset.data_vars)})"],
@@ -273,3 +268,41 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             top_item.addChild(leaf)
 
         return top_item
+
+
+def _show_open_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
+    logger = logging.getLogger(__name__)
+
+    dialog = QtWidgets.QFileDialog()
+
+    selected_file, _selected_filter = dialog.getOpenFileName(
+        None,
+        caption,
+        str(pathlib.Path.cwd()),
+        filter,
+    )
+    if selected_file == "":
+        # Dialog was closed / cancelled.
+        logger.debug("file selection cancelled")
+        return None
+
+    return pathlib.Path(selected_file)
+
+
+def _show_save_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
+    logger = logging.getLogger(__name__)
+
+    dialog = QtWidgets.QFileDialog()
+
+    selected_file, _selected_filter = dialog.getSaveFileName(
+        None,
+        caption,
+        str(pathlib.Path.cwd()),
+        filter,
+    )
+    if selected_file == "":
+        # Dialog was closed / cancelled.
+        logger.debug("file selection cancelled")
+        return None
+
+    return pathlib.Path(selected_file)
