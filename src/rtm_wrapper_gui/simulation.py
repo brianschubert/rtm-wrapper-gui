@@ -4,6 +4,7 @@ GUI elements for running simulations and loading simulation results.
 
 from __future__ import annotations
 
+import datetime
 import itertools
 import logging
 import pathlib
@@ -228,6 +229,7 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         )
 
         top_items = [
+            self._load_fileinfo(),
             self._load_outputs(),
             self._load_attributes(),
         ]
@@ -246,6 +248,42 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
                 "Select save location", "netCDF File (*.nc);;Any File (*)"
             )
             self.results.dataset.to_netcdf(selected_path)
+
+    def _load_fileinfo(self) -> QtWidgets.QTreeWidgetItem:
+        if self.results.file is None:
+            return QtWidgets.QTreeWidgetItem(["File", "<not saved>"])
+
+        top_item = QtWidgets.QTreeWidgetItem(
+            ["File", self.results.file.name],
+        )
+        size = self.results.file.stat().st_size / 1024
+        size_suffix = "KiB"
+        if size >= 1024:
+            size /= 1024
+            size_suffix = "MiB"
+        if size >= 1024:
+            size /= 1024
+            size_suffix = "GiB"
+
+        top_item.addChild(QtWidgets.QTreeWidgetItem(["Path", str(self.results.file)]))
+        top_item.addChild(
+            QtWidgets.QTreeWidgetItem(["Size", f"{size:.2f} {size_suffix}"])
+        )
+        top_item.addChild(
+            QtWidgets.QTreeWidgetItem(["Mode", f"{self.results.file.stat().st_mode:o}"])
+        )
+        top_item.addChild(
+            QtWidgets.QTreeWidgetItem(
+                [
+                    "Modified",
+                    datetime.datetime.fromtimestamp(self.results.file.stat().st_mtime)
+                    .astimezone()
+                    .isoformat(),
+                ]
+            )
+        )
+
+        return top_item
 
     def _load_outputs(self) -> QtWidgets.QTreeWidgetItem:
         top_item = QtWidgets.QTreeWidgetItem(
