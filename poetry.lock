@@ -737,7 +737,7 @@ typing-extensions = "^4.7.1"
 xarray = "^2023.7.0"
 
 [package.extras]
-6s = ["6s-bin @ git+https://github.com/brianschubert/6s-bin.git[]"]
+6s = ["6s-bin @ git+https://github.com/brianschubert/6s-bin.git[][]"]
 splib07 = ["splib07-loader @ git+https://github.com/brianschubert/splib07-loader.git"]
 
 [package.source]
@@ -883,4 +883,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9,<3.12"
-content-hash = "810ffc0604b5ad294403982ce412d239d000b7ef28e7180559fcd1edb85fb2df"
+content-hash = "5eda9f8963069fa969e499d37c7814a2320269f01b0bb77ccb9a6021c09309e1"
