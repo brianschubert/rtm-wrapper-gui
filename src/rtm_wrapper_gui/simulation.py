@@ -235,6 +235,7 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         self.header().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
+        self.setIndentation(12)
 
         top_items = [
             self._load_fileinfo(),
