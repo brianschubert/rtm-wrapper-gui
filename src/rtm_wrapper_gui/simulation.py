@@ -6,8 +6,10 @@ from __future__ import annotations
 
 import datetime
 import itertools
+import keyword
 import logging
 import pathlib
+import re
 from typing import Any, ClassVar, Iterable, Iterator
 
 import xarray as xr
@@ -190,8 +192,68 @@ class InteractiveNewSimulationProducer(SimulationProducer):
     known_engines: list[RTMEngine]
 
 
+class RegexHighlighter(QtGui.QSyntaxHighlighter):
+    """
+    Syntax highlighter that applies formatting to regular expression matches.
+
+    References
+    ----------
+
+    - https://doc.qt.io/qtforpython-6/PySide6/QtGui/QSyntaxHighlighter.html
+    - https://doc.qt.io/qtforpython-6/examples/example_widgets_richtext_syntaxhighlighter.html
+    - https://github.com/PySide/Examples/blob/master/examples/richtext/syntaxhighlighter.py
+    """
+
+    _patterns: list[tuple[re.Pattern, QtGui.QTextCharFormat]]
+
+    def __init__(
+        self,
+        patterns: Iterable[tuple[re.Pattern | str, QtGui.QTextCharFormat]],
+        parent: QtGui.QTextDocument | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._patterns = [
+            (re.compile(pattern), text_format) for pattern, text_format in patterns
+        ]
+
+    def highlightBlock(self, text: str) -> None:
+        for pattern, text_format in self._patterns:
+            for match in pattern.finditer(text):
+                start, end = match.span()
+                self.setFormat(start, end - start, text_format)
+
+
+class ScriptTextEdit(QtWidgets.QTextEdit):
+    _highlighter: RegexHighlighter
+
+    def __init__(
+        self,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+
+        keyword_format = QtGui.QTextCharFormat()
+        keyword_format.setFontWeight(QtGui.QFont.Weight.Bold)
+        keyword_format.setForeground(Qt.GlobalColor.darkBlue)
+
+        string_format = QtGui.QTextCharFormat()
+        string_format.setForeground(Qt.GlobalColor.darkGreen)
+
+        number_format = QtGui.QTextCharFormat()
+        number_format.setForeground(Qt.GlobalColor.blue)
+
+        self._highlighter = RegexHighlighter(
+            [
+                (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
+                ("([\"'])[^\\1]*?\\1", string_format),
+                ("[0-9]+", number_format),
+            ],
+            self.document(),
+        )
+
+
 class ScriptSimulationProducer(SimulationProducer):
-    script_textedit: QtWidgets.QTextEdit
+    script_textedit: ScriptTextEdit
 
     run_button: QtWidgets.QPushButton
 
@@ -205,8 +267,8 @@ class ScriptSimulationProducer(SimulationProducer):
     def _init_widgets(self) -> None:
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
+        self.script_textedit = ScriptTextEdit(self)
 
-        self.script_textedit = QtWidgets.QTextEdit()
         layout.addWidget(self.script_textedit)
 
         button_layout = QtWidgets.QHBoxLayout()
