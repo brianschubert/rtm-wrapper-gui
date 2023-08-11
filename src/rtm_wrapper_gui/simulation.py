@@ -321,6 +321,9 @@ class ScriptSimulationProducer(SimulationProducer):
     exec_worker: workers.PythonExecWorker
     exec_thread: QtCore.QThread
 
+    sim_worker: workers.RtmSimulationWorker
+    sim_thread: QtCore.QThread
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self._init_widgets()
@@ -363,6 +366,7 @@ class ScriptSimulationProducer(SimulationProducer):
         button_layout.addWidget(self.format_button)
 
     def _init_workers(self) -> None:
+        # Exec worker.
         self.exec_thread = QtCore.QThread()
 
         self.exec_worker = workers.PythonExecWorker()
@@ -371,8 +375,18 @@ class ScriptSimulationProducer(SimulationProducer):
         self.exec_thread.setObjectName(f"{self.__class__.__name__}-ExecWorker")
         self.exec_thread.start()
 
-        # Make the Python thread name match the QThread objhect name.
+        # Simulation worker.
+        self.sim_thread = QtCore.QThread()
+
+        self.sim_worker = workers.RtmSimulationWorker()
+        self.sim_worker.moveToThread(self.sim_thread)
+
+        self.sim_thread.setObjectName(f"{self.__class__.__name__}-SimWorker")
+        self.sim_thread.start()
+
+        # Make the Python thread name match the QThread object name.
         workers.ThreadNameSyncWorker.sync_thread_names(self.exec_thread)
+        workers.ThreadNameSyncWorker.sync_thread_names(self.sim_thread)
 
     def _init_signals(self) -> None:
         self.check_button.clicked.connect(self.check_script)
@@ -388,6 +402,15 @@ class ScriptSimulationProducer(SimulationProducer):
             )
         )
 
+        self.sim_worker.results[xr.Dataset].connect(self._on_sim_finished)
+        self.sim_worker.exception.connect(
+            lambda ex: QtWidgets.QMessageBox.warning(
+                self,
+                "Error running simulation",
+                f"Exception raised during simulation execution: <pre>{ex}</pre>",
+            )
+        )
+
         QtCore.QCoreApplication.instance().aboutToQuit.connect(self._on_about_to_quit)
 
     @QtCore.Slot()
@@ -398,6 +421,12 @@ class ScriptSimulationProducer(SimulationProducer):
         logger.debug("waiting on exec thread")
         self.exec_thread.wait()
         logger.debug("exec thread terminated")
+
+        logger.debug("quitting sim thread")
+        self.sim_thread.quit()
+        logger.debug("waiting on sim thread")
+        self.sim_thread.wait()
+        logger.debug("sim thread terminated")
 
     @QtCore.Slot()
     def check_script(self) -> bool:
@@ -484,8 +513,8 @@ class ScriptSimulationProducer(SimulationProducer):
         progress_bar.setMinimumDuration(0)
         progress_bar.setValue(0)
 
-        self.exec_worker.finished.connect(progress_bar.close)
-        self.exec_worker.exception.connect(progress_bar.close)
+        self.exec_worker.finished.connect(progress_bar.deleteLater)
+        self.exec_worker.exception.connect(progress_bar.deleteLater)
         self.exec_worker.send_job.emit(job)
 
     def _on_exec_job_finished(self, job: workers.ExecJob) -> None:
@@ -538,7 +567,22 @@ class ScriptSimulationProducer(SimulationProducer):
             f"Run simulation?",
         )
         if reply == QtWidgets.QMessageBox.StandardButton.Yes:
-            pass
+            progress_bar = QtWidgets.QProgressDialog(
+                "Running Simulation", "Cancel", 0, sweep.sweep_size, self
+            )
+            progress_bar.setWindowModality(Qt.WindowModality.WindowModal)
+            progress_bar.setMinimumDuration(0)
+            progress_bar.setValue(0)
+
+            self.sim_worker.results.connect(progress_bar.deleteLater)
+            self.sim_worker.exception.connect(progress_bar.deleteLater)
+            self.sim_worker.progress_changed[int].connect(progress_bar.setValue)
+            self.sim_worker.send_job.emit(
+                workers.SimulationJob(engine=engine, sweep=sweep)
+            )
+
+    def _on_sim_finished(self, sim_results: xr.Dataset) -> None:
+        self.new_results.emit(util.RtmResults(sim_results, None))
 
 
 class ResultsTabSelection(QtWidgets.QTabWidget):
