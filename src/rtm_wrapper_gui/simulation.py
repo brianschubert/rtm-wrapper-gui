@@ -677,6 +677,9 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             selected_path = _show_save_file_dialog(
                 "Select save location", "netCDF File (*.nc);;Any File (*)"
             )
+            if selected_path is None:
+                # File path not selected. Do nothing.
+                return
             self.results.dataset.to_netcdf(selected_path)
             self.results.file = selected_path
 
