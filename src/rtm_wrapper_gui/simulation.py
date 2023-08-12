@@ -680,8 +680,16 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             self._prompt_save()
 
     def _prompt_save(self) -> None:
+        if self.results.file is not None:
+            suggested_name = self.results.file.name
+        else:
+            timestamp = datetime.datetime.fromisoformat(
+                self.results.dataset.attrs["sim_start"]
+            )
+            suggested_name = f"results_{timestamp:%Y%m%dT%H%M%S.nc}"
+
         selected_path = _show_save_file_dialog(
-            "Select save location", "netCDF File (*.nc);;Any File (*)"
+            "Select save location", "netCDF File (*.nc);;Any File (*)", suggested_name
         )
         if selected_path is None:
             return
@@ -890,7 +898,9 @@ def _show_open_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
     return pathlib.Path(selected_file)
 
 
-def _show_save_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
+def _show_save_file_dialog(
+    caption: str, filter: str, default_name: str = ""
+) -> pathlib.Path | None:
     logger = logging.getLogger(__name__)
 
     dialog = QtWidgets.QFileDialog()
@@ -898,7 +908,7 @@ def _show_save_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
     selected_file, _selected_filter = dialog.getSaveFileName(
         None,
         caption,
-        str(pathlib.Path.cwd()),
+        str(pathlib.Path.cwd().joinpath(default_name)),
         filter,
     )
     if selected_file == "":
