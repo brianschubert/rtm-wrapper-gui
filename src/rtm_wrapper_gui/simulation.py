@@ -660,6 +660,8 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
 
         top_items = [
             self._load_fileinfo(),
+            self._load_dims(),
+            self._load_coords(),
             self._load_outputs(),
             self._load_base_inputs(),
             self._load_attributes(),
@@ -718,6 +720,45 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
                 ]
             )
         )
+
+        return top_item
+
+    def _load_dims(self) -> QtWidgets.QTreeWidgetItem:
+        dims = list(self.results.dataset.indexes.dims.items())
+        top_item = QtWidgets.QTreeWidgetItem(
+            ["Dimensions", f"({len(dims)})"],
+        )
+        for dim_name, dim_size in dims:
+            top_item.addChild(QtWidgets.QTreeWidgetItem([dim_name, f"{dim_size}"]))
+        return top_item
+
+    def _load_coords(self) -> QtWidgets.QTreeWidgetItem:
+        coords = list(self.results.dataset.coords.values())
+        top_item = QtWidgets.QTreeWidgetItem(
+            ["Coordinates", f"({len(coords)})"],
+        )
+        for coord in coords:
+            simplified_dims = [
+                dim if rtm_sim._PARAMETER_AXES_SEP not in dim else ":"
+                for dim in coord.dims
+            ]
+            coord_branch = QtWidgets.QTreeWidgetItem(
+                [coord.name, f"({', '.join(simplified_dims)})"]
+            )
+            coord_branch.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    ["Array", f"{coord.dtype.name} {repr(coord.shape)}"],
+                )
+            )
+            # TODO replace with buttons to show details
+            values_str = repr(coord.values.tolist())
+            coord_branch.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    ["Values", values_str],
+                )
+            )
+
+            top_item.addChild(coord_branch)
 
         return top_item
 
