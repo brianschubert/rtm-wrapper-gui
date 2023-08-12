@@ -15,6 +15,7 @@ import keyword
 import logging
 import pathlib
 import pickle
+import pprint
 import re
 import traceback
 import typing
@@ -748,12 +749,15 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
                 )
             )
             # TODO replace with buttons to show details
-            values_str = repr(coord.values.tolist())
-            coord_branch.addChild(
-                QtWidgets.QTreeWidgetItem(
-                    ["values", values_str],
-                )
+            # Display values in first column so that resizing kicks in.
+            # Last column is set to only stretch.
+            values_branch = QtWidgets.QTreeWidgetItem(
+                ["values", "<click to expand>"],
             )
+            values_branch.addChild(
+                QtWidgets.QTreeWidgetItem([repr(coord.values.tolist())])
+            )
+            coord_branch.addChild(values_branch)
 
             for attr_name, attr_value in coord.attrs.items():
                 coord_branch.addChild(
