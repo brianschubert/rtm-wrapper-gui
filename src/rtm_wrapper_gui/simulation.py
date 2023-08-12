@@ -194,7 +194,12 @@ class FileSimulationProducer(SimulationProducer, QtWidgets.QWidget):
         try:
             dataset = xr.open_dataset(path)
         except Exception as ex:
-            logger.error("failed to load dataset", exc_info=ex)
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Invalid netCDF file",
+                f"<tt>{file}</tt> is not a valid netCDF file.",
+            )
+            logger.warning("failed to load dataset", exc_info=ex)
             return
         logger.debug("loaded dataset\n%r", dataset)
 
