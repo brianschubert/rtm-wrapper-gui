@@ -5,7 +5,7 @@ Plotting GUI elements.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Iterator, Optional
 
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
@@ -13,6 +13,7 @@ from matplotlib.figure import Figure
 from PySide6 import QtCore, QtWidgets
 
 from rtm_wrapper_gui import util
+from rtm_wrapper_gui.plot.plotters import DatasetPlotter
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -128,18 +129,35 @@ class RtmResultsPlots(QtWidgets.QWidget):
         layout.addWidget(self.controls)
 
 
+class DatasetPlotterConfigWidget(QtWidgets.QWidget):
+    plotter: DatasetPlotter
+
+    def extract_config(self) -> dict[str, Any]:
+        return {}
+
+    @property
+    def display_name(self) -> str:
+        return self.__class__.__name__
+
+
 class PlotterRegistry:
     """
     Registry of dataset plotters that the plot controls can offer to the user.
     """
 
-    _plotters: list[type[...]]
+    _plotters: list[type[DatasetPlotterConfigWidget]]
 
     def __init__(self) -> None:
         self._plotters = []
 
-    def register(self, cls: type[...]) -> None:
+    def register(
+        self, cls: type[DatasetPlotterConfigWidget]
+    ) -> type[DatasetPlotterConfigWidget]:
         self._plotters.append(cls)
+        return cls
+
+    def __iter__(self) -> Iterator[type[DatasetPlotterConfigWidget]]:
+        yield from self._plotters
 
 
 class PlotControls(QtWidgets.QWidget):
@@ -166,13 +184,10 @@ class PlotControls(QtWidgets.QWidget):
         self.plotter_selector = QtWidgets.QComboBox()
         left_controls.addWidget(self.plotter_selector)
 
-        for num in range(5):
-            name = f"Option {num}"
-            widget = QtWidgets.QGroupBox()
-            widget.setTitle(f"Content {num} Configuration")
-
-            self.plotter_selector.addItem(name)
-            self.plotter_controls.addWidget(widget)
+        for plotter_cls in self.plotters:
+            plotter_controls = plotter_cls(self)
+            self.plotter_selector.addItem(plotter_controls.display_name)
+            self.plotter_controls.addWidget(plotter_controls)
 
         self.reset_button = QtWidgets.QPushButton()
         self.reset_button.setIcon(
@@ -208,3 +223,17 @@ class PlotControls(QtWidgets.QWidget):
     def _on_plot_clicked(self) -> None:
         logger = logging.getLogger(__name__)
         logger.debug("plot button clicked")
+
+
+@PlotControls.plotters.register
+class DummyPlotterConfig(DatasetPlotterConfigWidget):
+    textedit: QtWidgets.QTextEdit
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
+        layout = QtWidgets.QHBoxLayout()
+        self.setLayout(layout)
+
+        self.textedit = QtWidgets.QTextEdit()
+        self.textedit.setText("test")
+        layout.addWidget(self.textedit)
