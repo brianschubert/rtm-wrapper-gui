@@ -662,15 +662,12 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             self._load_fileinfo(),
             self._load_dims(),
             self._load_coords(),
-            self._load_outputs(),
             self._load_base_inputs(),
+            self._load_outputs(),
             self._load_attributes(),
         ]
         self.insertTopLevelItems(0, top_items)
         # self.expandAll()
-
-        for col in range(self.columnCount()):
-            self.resizeColumnToContents(col)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if (
@@ -726,7 +723,7 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
     def _load_dims(self) -> QtWidgets.QTreeWidgetItem:
         dims = list(self.results.dataset.indexes.dims.items())
         top_item = QtWidgets.QTreeWidgetItem(
-            ["Dimensions", f"({len(dims)})"],
+            ["Sweep Dimensions", f"({len(dims)})"],
         )
         for dim_name, dim_size in dims:
             top_item.addChild(QtWidgets.QTreeWidgetItem([dim_name, f"{dim_size}"]))
@@ -735,7 +732,7 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
     def _load_coords(self) -> QtWidgets.QTreeWidgetItem:
         coords = list(self.results.dataset.coords.values())
         top_item = QtWidgets.QTreeWidgetItem(
-            ["Coordinates", f"({len(coords)})"],
+            ["Sweep Coordinates", f"({len(coords)})"],
         )
         for coord in coords:
             simplified_dims = [
@@ -747,16 +744,23 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             )
             coord_branch.addChild(
                 QtWidgets.QTreeWidgetItem(
-                    ["Array", f"{coord.dtype.name} {repr(coord.shape)}"],
+                    ["type", f"{coord.dtype.name} {repr(coord.shape)}"],
                 )
             )
             # TODO replace with buttons to show details
             values_str = repr(coord.values.tolist())
             coord_branch.addChild(
                 QtWidgets.QTreeWidgetItem(
-                    ["Values", values_str],
+                    ["values", values_str],
                 )
             )
+
+            for attr_name, attr_value in coord.attrs.items():
+                coord_branch.addChild(
+                    QtWidgets.QTreeWidgetItem(
+                        [attr_name, str(attr_value)],
+                    )
+                )
 
             top_item.addChild(coord_branch)
 
@@ -792,12 +796,12 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             base_payload = self.results.dataset.attrs["base_pzb64"]
         except KeyError:
             logger.debug("dataset missing base inputs")
-            return QtWidgets.QTreeWidgetItem(["Base", "<not available>"])
+            return QtWidgets.QTreeWidgetItem(["Base Inputs", "<not available>"])
 
         base_inputs = pickle.loads(gzip.decompress(base64.b64decode(base_payload)))
 
         children = list(_parameter_tree(base_inputs))
-        top_item = QtWidgets.QTreeWidgetItem(["Base", f"({len(children)})"])
+        top_item = QtWidgets.QTreeWidgetItem(["Base Inputs", f"({len(children)})"])
         top_item.addChildren(children)
 
         return top_item
