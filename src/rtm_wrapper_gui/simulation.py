@@ -670,7 +670,10 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             self._load_attributes(),
         ]
         self.insertTopLevelItems(0, top_items)
+
         # self.expandAll()
+        for item in top_items:
+            self.expandItem(item)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if (
