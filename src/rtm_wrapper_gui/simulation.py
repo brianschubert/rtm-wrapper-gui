@@ -5,14 +5,19 @@ GUI elements for running simulations and loading simulation results.
 from __future__ import annotations
 
 import ast
+import base64
 import builtins
+import dataclasses
 import datetime
+import gzip
 import itertools
 import keyword
 import logging
 import pathlib
+import pickle
 import re
 import traceback
+import typing
 from typing import Any, ClassVar, Final, Iterable, Iterator
 
 import black
@@ -22,6 +27,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
 import rtm_wrapper.engines.base as rtm_engines
+import rtm_wrapper.parameters as rtm_param
 import rtm_wrapper.simulation as rtm_sim
 from rtm_wrapper.engines.base import RTMEngine
 from rtm_wrapper_gui import util, workers
@@ -567,13 +573,13 @@ class ScriptSimulationProducer(SimulationProducer):
             f"Run simulation?",
         )
         if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+            # TODO customize progress bar to show sims/s, runtime, and ETA.
             progress_bar = QtWidgets.QProgressDialog(
                 "Running Simulation", None, 0, sweep.sweep_size, self
             )
             progress_bar.setWindowModality(Qt.WindowModality.WindowModal)
             progress_bar.setMinimumDuration(0)
             progress_bar.setValue(0)
-            # progress_bar.setCancelButton(None)
 
             self.sim_worker.results.connect(progress_bar.deleteLater)
             self.sim_worker.exception.connect(progress_bar.deleteLater)
@@ -655,6 +661,7 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         top_items = [
             self._load_fileinfo(),
             self._load_outputs(),
+            self._load_base_inputs(),
             self._load_attributes(),
         ]
         self.insertTopLevelItems(0, top_items)
@@ -736,6 +743,24 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
 
         return top_item
 
+    def _load_base_inputs(self) -> QtWidgets.QTreeWidgetItem:
+        # TODO add --safe flag to disable unpickling
+        logger = logging.getLogger(__name__)
+
+        try:
+            base_payload = self.results.dataset.attrs["base_pzb64"]
+        except KeyError:
+            logger.debug("dataset missing base inputs")
+            return QtWidgets.QTreeWidgetItem(["Base", "<not available>"])
+
+        base_inputs = pickle.loads(gzip.decompress(base64.b64decode(base_payload)))
+
+        children = list(_parameter_tree(base_inputs))
+        top_item = QtWidgets.QTreeWidgetItem(["Base", f"({len(children)})"])
+        top_item.addChildren(children)
+
+        return top_item
+
 
 def _show_open_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
     logger = logging.getLogger(__name__)
@@ -773,3 +798,19 @@ def _show_save_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
         return None
 
     return pathlib.Path(selected_file)
+
+
+def _parameter_tree(param: rtm_param.Parameter) -> Iterator[QtWidgets.QTreeWidgetItem]:
+    hints = typing.get_type_hints(type(param))
+
+    for hint_name in hints.keys():
+        value = getattr(param, hint_name)
+        if isinstance(value, rtm_param.Parameter):
+            branch = QtWidgets.QTreeWidgetItem([hint_name, type(value).__name__])
+            for child in _parameter_tree(value):
+                branch.addChild(child)
+        else:
+            branch = QtWidgets.QTreeWidgetItem([hint_name, repr(value)])
+            for meta_key, meta_value in param.get_metadata(hint_name).items():
+                branch.addChild(QtWidgets.QTreeWidgetItem([meta_key, meta_value]))
+        yield branch
