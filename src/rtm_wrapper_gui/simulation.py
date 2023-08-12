@@ -661,10 +661,10 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
 
         top_items = [
             self._load_fileinfo(),
+            self._load_outputs(),
             self._load_dims(),
             self._load_coords(),
             self._load_base_inputs(),
-            self._load_outputs(),
             self._load_attributes(),
         ]
         self.insertTopLevelItems(0, top_items)
@@ -719,6 +719,9 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             )
         )
 
+        top_item.setIcon(
+            0, self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon)
+        )
         return top_item
 
     def _load_dims(self) -> QtWidgets.QTreeWidgetItem:
@@ -728,6 +731,13 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         )
         for dim_name, dim_size in dims:
             top_item.addChild(QtWidgets.QTreeWidgetItem([dim_name, f"{dim_size}"]))
+
+        top_item.setIcon(
+            0,
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView
+            ),
+        )
         return top_item
 
     def _load_coords(self) -> QtWidgets.QTreeWidgetItem:
@@ -766,6 +776,12 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
                     )
                 )
 
+            top_item.setIcon(
+                0,
+                self.style().standardIcon(
+                    QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView
+                ),
+            )
             top_item.addChild(coord_branch)
 
         return top_item
@@ -779,6 +795,12 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             leaf = QtWidgets.QTreeWidgetItem([name])
             top_item.addChild(leaf)
 
+        top_item.setIcon(
+            0,
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton
+            ),
+        )
         return top_item
 
     def _load_attributes(self) -> QtWidgets.QTreeWidgetItem:
@@ -790,6 +812,12 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             leaf = QtWidgets.QTreeWidgetItem([name, value])
             top_item.addChild(leaf)
 
+        top_item.setIcon(
+            0,
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_FileDialogInfoView
+            ),
+        )
         return top_item
 
     def _load_base_inputs(self) -> QtWidgets.QTreeWidgetItem:
@@ -807,6 +835,11 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         children = list(_parameter_tree(base_inputs))
         top_item = QtWidgets.QTreeWidgetItem(["Base Inputs", f"({len(children)})"])
         top_item.addChildren(children)
+
+        top_item.setIcon(
+            0,
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ArrowForward),
+        )
 
         return top_item
 
