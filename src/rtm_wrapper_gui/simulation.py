@@ -603,6 +603,9 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
         # Closing tabs automatically changes the current tab.
         self.setTabsClosable(True)
         self.tabCloseRequested[int].connect(self.close_tab)
+        self.tabBarDoubleClicked[int].connect(
+            lambda index: self.widget(index)._prompt_save()  # type: ignore
+        )
 
     @QtCore.Slot()
     def close_tab(self, index: int) -> None:
@@ -674,18 +677,21 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             event.key() == Qt.Key.Key_S
             and event.modifiers() == Qt.KeyboardModifier.ControlModifier
         ):
-            selected_path = _show_save_file_dialog(
-                "Select save location", "netCDF File (*.nc);;Any File (*)"
-            )
-            if selected_path is None:
-                # File path not selected. Do nothing.
-                return
-            self.results.dataset.to_netcdf(selected_path)
-            self.results.file = selected_path
+            self._prompt_save()
 
-            _old_fileinfo = self.takeTopLevelItem(0)
-            self.insertTopLevelItem(0, self._load_fileinfo())
-            self.details_changed.emit()
+    def _prompt_save(self) -> None:
+        selected_path = _show_save_file_dialog(
+            "Select save location", "netCDF File (*.nc);;Any File (*)"
+        )
+        if selected_path is None:
+            return
+
+        self.results.dataset.to_netcdf(selected_path)
+        self.results.file = selected_path
+
+        _old_fileinfo = self.takeTopLevelItem(0)
+        self.insertTopLevelItem(0, self._load_fileinfo())
+        self.details_changed.emit()
 
     def _load_fileinfo(self) -> QtWidgets.QTreeWidgetItem:
         if self.results.file is None:
