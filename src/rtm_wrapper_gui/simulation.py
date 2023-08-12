@@ -686,7 +686,14 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
 
     def _load_fileinfo(self) -> QtWidgets.QTreeWidgetItem:
         if self.results.file is None:
-            return QtWidgets.QTreeWidgetItem(["File", "<not saved>"])
+            top_item = QtWidgets.QTreeWidgetItem(["File", "<not saved>"])
+            top_item.setIcon(
+                0,
+                self.style().standardIcon(
+                    QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning
+                ),
+            )
+            return top_item
 
         top_item = QtWidgets.QTreeWidgetItem(
             ["File", self.results.file.name],
