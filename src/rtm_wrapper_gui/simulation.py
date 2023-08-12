@@ -791,9 +791,29 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
             ["Outputs", f"({len(self.results.dataset.data_vars)})"],
         )
 
-        for name in sorted(self.results.dataset.data_vars.keys()):
-            leaf = QtWidgets.QTreeWidgetItem([name])
-            top_item.addChild(leaf)
+        for output in self.results.dataset.data_vars.values():
+            output_branch = QtWidgets.QTreeWidgetItem(
+                [output.name, f"{output.dtype.name} {repr(output.shape)}"]
+            )
+
+            # TODO replace with buttons to show details
+            # Display values in first column so that resizing kicks in.
+            # Last column is set to only stretch.
+            values_branch = QtWidgets.QTreeWidgetItem(
+                ["values", "<click to expand>"],
+            )
+            values_branch.addChild(
+                QtWidgets.QTreeWidgetItem([repr(output.values.tolist())])
+            )
+            output_branch.addChild(values_branch)
+
+            for attr_name, attr_value in output.attrs.items():
+                output_branch.addChild(
+                    QtWidgets.QTreeWidgetItem(
+                        [attr_name, str(attr_value)],
+                    )
+                )
+            top_item.addChild(output_branch)
 
         top_item.setIcon(
             0,
