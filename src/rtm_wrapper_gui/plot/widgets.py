@@ -1,6 +1,9 @@
+"""
+Plotting GUI elements.
+"""
+
 from __future__ import annotations
 
-import abc
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
@@ -8,7 +11,6 @@ import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import Qt
 
 from rtm_wrapper_gui import util
 
@@ -126,39 +128,17 @@ class RtmResultsPlots(QtWidgets.QWidget):
         layout.addWidget(self.controls)
 
 
-class DatasetPlotter(abc.ABC):
-    dimensions: tuple[str, ...]
-
-    @abc.abstractmethod
-    def plot(self, figure: FigureWidget, dataset, dim_spec) -> None:
-        pass
-
-
-class FixedDimDatasetPlotter(DatasetPlotter):
-    """
-    Dataset plotter that relies ona fixed layout for the dataset dimensions
-    """
-
-    def plot(self, figure: FigureWidget, dataset, dim_spec) -> None:
-        trimmed_dataset = self._reshape_to_spec(dataset, dim_spec)
-        self._plot(figure, dataset)
-
-    @abc.abstractmethod
-    def _plot(self, figure: FigureWidget, dataset: util.RtmResults) -> None:
-        ...
-
-
 class PlotterRegistry:
     """
     Registry of dataset plotters that the plot controls can offer to the user.
     """
 
-    _plotters: list[type[DatasetPlotter]]
+    _plotters: list[type[...]]
 
     def __init__(self) -> None:
         self._plotters = []
 
-    def register(self, cls: type[DatasetPlotter]) -> None:
+    def register(self, cls: type[...]) -> None:
         self._plotters.append(cls)
 
 
@@ -228,57 +208,3 @@ class PlotControls(QtWidgets.QWidget):
     def _on_plot_clicked(self) -> None:
         logger = logging.getLogger(__name__)
         logger.debug("plot button clicked")
-
-
-# class DimensionSelector(QtWidgets.QGroupBox):
-#     requested_dimensions: list[str]
-#
-#     available_dimensions: dict[str, xr.DataArray]
-#
-#     reset = QtCore.Signal()
-#
-#     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
-#         super().__init__("Dimensions", parent)
-#
-#         self.reset.connect(self._on_reset)
-#
-#         self.setLayout(QtWidgets.QHBoxLayout())
-#
-#     def set_requested_dims(self, dims: Iterable[str]) -> None:
-#         self.requested_dimensions = list(dims)
-#         self.reset.emit()
-#
-#     def _on_reset(self) -> None:
-#         logger = logging.getLogger(__name__)
-#         logger.debug("resetting dimension selector")
-#
-#         # https://stackoverflow.com/q/4528347/11082165
-#         while self.layout().count():
-#             widget = self.layout().takeAt(0).widget()
-#             logger.debug("removing %r", widget)
-#             widget.deleteLater()
-#
-#         for dim in self.requested_dimensions:
-#             self._add_dim_combo(dim)
-#
-#     def _add_dim_combo(self, dim_name: str) -> None:
-#         logger = logging.getLogger(__name__)
-#         logger.debug("adding combo %r", dim_name)
-#
-#         widget = QtWidgets.QWidget(self)
-#         layout = QtWidgets.QHBoxLayout()
-#         widget.setLayout(layout)
-#
-#         label = QtWidgets.QLabel(f"{dim_name}: ")
-#         layout.addWidget(label)
-#
-#         combo = QtWidgets.QComboBox()
-#         layout.addWidget(combo)
-#
-#         self.layout().addWidget(widget)
-#
-#
-# @PlotControls.plotters.register
-# class SingleSweepPlotter(DatasetPlotter):
-#     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
-#         super().__init__(parent)

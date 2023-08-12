@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
 from rtm_wrapper_gui import util
-from rtm_wrapper_gui.plot import RtmResultsPlots
+from rtm_wrapper_gui.plot.widgets import RtmResultsPlots
 from rtm_wrapper_gui.simulation import SimulationPanel
 
 
