@@ -612,7 +612,20 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
         # TODO maybe set background when all tabs are closed
         # https://stackoverflow.com/q/73530138/11082165
 
-        widget = self.widget(index)
+        widget: ResultsSummaryDisplay = self.widget(index)  # type: ignore
+        tab_name = self.tabText(index)
+        if widget.results.file is None:
+            reply = QtWidgets.QMessageBox.question(
+                self,
+                "Close unsaved results",
+                f"Close '{tab_name}' without saving?",
+                QtWidgets.QMessageBox.StandardButton.Discard
+                | QtWidgets.QMessageBox.StandardButton.Cancel,
+                QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QtWidgets.QMessageBox.StandardButton.Discard:
+                return
+
         widget.deleteLater()
         # Note: don't use removeTab - https://www.qtcentre.org/threads/35202-Removing-a-tab-in-QTabWidget-removes-tabs-to-right-as-well
         # self.tabBar().removeTab(index)
