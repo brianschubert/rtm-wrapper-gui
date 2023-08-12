@@ -662,8 +662,7 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         top_items = [
             self._load_fileinfo(),
             self._load_outputs(),
-            self._load_dims(),
-            self._load_coords(),
+            self._load_sweep(),
             self._load_base_inputs(),
             self._load_attributes(),
         ]
@@ -724,13 +723,51 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
         )
         return top_item
 
-    def _load_dims(self) -> QtWidgets.QTreeWidgetItem:
+    def _load_sweep(self) -> QtWidgets.QTreeWidgetItem:
         dims = list(self.results.dataset.indexes.dims.items())
         top_item = QtWidgets.QTreeWidgetItem(
-            ["Sweep Dimensions", f"({len(dims)})"],
+            ["Sweep", f"({len(dims)})"],
         )
         for dim_name, dim_size in dims:
-            top_item.addChild(QtWidgets.QTreeWidgetItem([dim_name, f"{dim_size}"]))
+            assoc_coords = [
+                coord
+                for coord in self.results.dataset.coords.values()
+                if dim_name in coord.dims
+            ]
+            dim_branch = QtWidgets.QTreeWidgetItem(
+                [dim_name, f"size={dim_size} ({len(assoc_coords)})"]
+            )
+            top_item.addChild(dim_branch)
+
+            for coord in assoc_coords:
+                simplified_dims = [
+                    f"{dim}={size}"
+                    if rtm_sim._PARAMETER_AXES_SEP not in dim
+                    else f"{size}"
+                    for dim, size in coord.sizes.items()
+                ]
+                coord_branch = QtWidgets.QTreeWidgetItem(
+                    [coord.name, f"{coord.dtype.name} ({', '.join(simplified_dims)})"]
+                )
+                dim_branch.addChild(coord_branch)
+
+                # TODO replace with buttons to show details
+                # Display values in first column so that resizing kicks in.
+                # Last column is set to only stretch.
+                values_branch = QtWidgets.QTreeWidgetItem(
+                    ["values", "<click to expand>"],
+                )
+                values_branch.addChild(
+                    QtWidgets.QTreeWidgetItem([repr(coord.values.tolist())])
+                )
+                coord_branch.addChild(values_branch)
+
+                for attr_name, attr_value in coord.attrs.items():
+                    coord_branch.addChild(
+                        QtWidgets.QTreeWidgetItem(
+                            [attr_name, str(attr_value)],
+                        )
+                    )
 
         top_item.setIcon(
             0,
@@ -738,52 +775,6 @@ class ResultsSummaryDisplay(QtWidgets.QTreeWidget):
                 QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView
             ),
         )
-        return top_item
-
-    def _load_coords(self) -> QtWidgets.QTreeWidgetItem:
-        coords = list(self.results.dataset.coords.values())
-        top_item = QtWidgets.QTreeWidgetItem(
-            ["Sweep Coordinates", f"({len(coords)})"],
-        )
-        for coord in coords:
-            simplified_dims = [
-                dim if rtm_sim._PARAMETER_AXES_SEP not in dim else ":"
-                for dim in coord.dims
-            ]
-            coord_branch = QtWidgets.QTreeWidgetItem(
-                [coord.name, f"({', '.join(simplified_dims)})"]
-            )
-            coord_branch.addChild(
-                QtWidgets.QTreeWidgetItem(
-                    ["type", f"{coord.dtype.name} {repr(coord.shape)}"],
-                )
-            )
-            # TODO replace with buttons to show details
-            # Display values in first column so that resizing kicks in.
-            # Last column is set to only stretch.
-            values_branch = QtWidgets.QTreeWidgetItem(
-                ["values", "<click to expand>"],
-            )
-            values_branch.addChild(
-                QtWidgets.QTreeWidgetItem([repr(coord.values.tolist())])
-            )
-            coord_branch.addChild(values_branch)
-
-            for attr_name, attr_value in coord.attrs.items():
-                coord_branch.addChild(
-                    QtWidgets.QTreeWidgetItem(
-                        [attr_name, str(attr_value)],
-                    )
-                )
-
-            top_item.setIcon(
-                0,
-                self.style().standardIcon(
-                    QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView
-                ),
-            )
-            top_item.addChild(coord_branch)
-
         return top_item
 
     def _load_outputs(self) -> QtWidgets.QTreeWidgetItem:
