@@ -168,8 +168,8 @@ class PlotControls(QtWidgets.QWidget):
     plotter_selector: QtWidgets.QComboBox
     plotter_controls: QtWidgets.QStackedWidget
 
-    plot_button: QtWidgets.QToolButton
-    reset_button: QtWidgets.QToolButton
+    plot_button: QtWidgets.QPushButton
+    reset_button: QtWidgets.QPushButton
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -194,10 +194,7 @@ class PlotControls(QtWidgets.QWidget):
             self.plotter_selector.addItem(name)
             self.plotter_controls.addWidget(widget)
 
-        self.reset_button = QtWidgets.QToolButton()
-        self.reset_button.setToolButtonStyle(
-            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-        )
+        self.reset_button = QtWidgets.QPushButton()
         self.reset_button.setIcon(
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_DialogResetButton
@@ -206,8 +203,7 @@ class PlotControls(QtWidgets.QWidget):
         self.reset_button.setText("Reset")
         left_controls.addWidget(self.reset_button)
 
-        self.plot_button = QtWidgets.QToolButton()
-        self.plot_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.plot_button = QtWidgets.QPushButton()
         self.plot_button.setIcon(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MediaPlay)
         )
