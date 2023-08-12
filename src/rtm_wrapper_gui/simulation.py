@@ -89,7 +89,7 @@ class SimulationProducerTabs(QtWidgets.QTabWidget):
             "File",
         )
         self.addTab(
-            InteractiveNewSimulationProducer(),
+            InteractiveSimulationProducer(),
             self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_FileDialogDetailedView
             ),
@@ -202,8 +202,19 @@ class FileSimulationProducer(SimulationProducer, QtWidgets.QWidget):
         self.new_results.emit(results)
 
 
-class InteractiveNewSimulationProducer(SimulationProducer):
-    known_engines: list[RTMEngine]
+class InteractiveSimulationProducer(SimulationProducer):
+    splash_textedit: QtWidgets.QTextEdit()
+
+    def __init__(self, parent: QtGui.QTextDocument | None = None) -> None:
+        super().__init__(parent)
+        layout = QtWidgets.QVBoxLayout()
+        self.setLayout(layout)
+
+        self.splash_textedit = QtWidgets.QTextEdit()
+        layout.addWidget(self.splash_textedit)
+
+        self.splash_textedit.setText("Coming soon!")
+        self.splash_textedit.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
 class RegexHighlighter(QtGui.QSyntaxHighlighter):
