@@ -2,17 +2,13 @@ from __future__ import annotations
 
 import abc
 import logging
-import random
-import string
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 import numpy as np
-import xarray as xr
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtCore import Qt
 
 from rtm_wrapper_gui import util
 
@@ -33,14 +29,14 @@ class FigureWidget(QtWidgets.QWidget):
         super().__init__(parent, *args, **kwargs)
 
         layout = QtWidgets.QVBoxLayout()
+        self.setLayout(layout)
+
         layout.setContentsMargins(0, 0, 0, 10)
 
         self.canvas = FigureCanvasQTAgg(Figure())
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
-
-        self.setLayout(layout)
 
         # Temporarily initialize axes to single array of shape () containing a None value.
         self.axes = np.empty((0,), dtype=object)
@@ -100,8 +96,6 @@ class FigureWidget(QtWidgets.QWidget):
         self._set_subplots(nrows=1, ncols=1)
 
         self._get_axes().axis("off")
-        # ax.set_xticks([])
-        # ax.set_yticks([])
 
         self._get_axes().text(0.5, 0.5, message, **kwargs)
 
@@ -111,14 +105,16 @@ class RtmResultsPlots(QtWidgets.QWidget):
 
     controls: PlotControls
 
-    plot_button: QtWidgets.QToolButton
+    active_results: util.WatchedBox[util.RtmResults | None]
 
-    sim_results: util.RtmResults | None
-
-    change_results = QtCore.Signal(util.RtmResults)
-
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self,
+        results_box: util.WatchedBox[util.RtmResults],
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
+
+        self.active_results = results_box
 
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
@@ -128,60 +124,6 @@ class RtmResultsPlots(QtWidgets.QWidget):
 
         self.controls = PlotControls(self)
         layout.addWidget(self.controls)
-
-        self.plot_button = QtWidgets.QToolButton()
-        self.plot_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.plot_button.setIcon(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MediaPlay)
-        )
-        self.plot_button.setText("Plot")
-        layout.addWidget(self.plot_button)
-
-        self._init_signals()
-
-        self.sim_results = None
-
-    def _init_signals(self) -> None:
-        self.change_results[util.RtmResults].connect(self._on_change_results)
-        self.plot_button.clicked.connect(self._on_plot_clicked)
-
-    @QtCore.Slot(util.RtmResults)
-    def _on_change_results(self, results: util.RtmResults) -> None:
-        self.sim_results = results
-
-    @QtCore.Slot()
-    def _on_plot_clicked(self) -> None:
-        logger = logging.getLogger(__name__)
-        logger.debug("plot button clicked")
-        # if self.sim_results is None:
-        #     error = self._make_error_box("No results loaded")
-        #     error.exec()
-        #     return
-        #
-        self.figure_widget.draw.emit()
-
-        # self.controls.dimensions_selector.set_requested_dims(
-        #     random.sample(string.ascii_letters, 3)
-        # )
-
-        # # or raise
-        # actived_plotter = self.controls.get_active_plotter()
-        #
-        # specified_dim_settings = self.controls.get_requested_dims()
-        #
-        # actived_plotter.plot(self.figure, dataset, dim_spec)
-
-    def _make_error_box(self, message: str) -> QtWidgets.QMessageBox:
-        box = QtWidgets.QMessageBox()
-        box.setIcon(QtWidgets.QMessageBox.Icon.Critical)
-        box.setText("Unable to plot")
-        box.setInformativeText(message)
-        box.setWindowTitle("Plot Error")
-        # Match parent window's icon.
-        box.setWindowIcon(self.window().windowIcon())
-        # Use system error icon
-        # box.setWindowIcon(QtGui.QIcon.fromTheme("error"))
-        return box
 
 
 class DatasetPlotter(abc.ABC):
@@ -206,60 +148,6 @@ class FixedDimDatasetPlotter(DatasetPlotter):
         ...
 
 
-class DataArrayDimensionsItemModel(QtCore.QAbstractItemModel):
-    dimension_richnames: dict[str, str]
-    """Mapping between requested dimension name and it's rich name."""
-
-    array: xr.DataArray
-
-    def __init__(
-        self,
-        array: xr.DataArray,
-        *args: Any,
-        richnames: Mapping[str, str] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        if richnames is None:
-            richnames = {}
-
-        self.array = array
-        self.dimension_richnames = dict(richnames)
-        super().__init__(*args, **kwargs)
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 3
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 5
-
-    def index(
-        self, row: int, column: int, parent: QModelIndex = QModelIndex()
-    ) -> QModelIndex:
-        return self.createIndex(row, column, parent)
-
-    def data(
-        self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole
-    ) -> Any:
-        if role == Qt.ItemDataRole.DisplayRole:
-            return f"item {index.row()} {index.column()}"
-
-    def parent(self, child: QModelIndex) -> QModelIndex:
-        return self.createIndex(child.column(), 0)
-
-    def headerData(
-        self,
-        section: int,
-        orientation: Qt.Orientation,
-        role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole,
-    ) -> Any:
-        cols = [f"Col #{i}" for i in range(self.columnCount())]
-        if role == Qt.ItemDataRole.DisplayRole:
-            if orientation == Qt.Orientation.Horizontal:
-                return cols[section]
-            if orientation == Qt.Orientation.Vertical:
-                return cols[section]
-
-
 class PlotterRegistry:
     """
     Registry of dataset plotters that the plot controls can offer to the user.
@@ -278,83 +166,123 @@ class PlotControls(QtWidgets.QWidget):
     plotters: ClassVar[PlotterRegistry] = PlotterRegistry()
 
     plotter_selector: QtWidgets.QComboBox
+    plotter_controls: QtWidgets.QStackedWidget
 
-    # dimensions_selector: DimensionSelector
-
-    dimensions_columns: QtWidgets.QColumnView
-
-    reset_controls = QtCore.Signal()
+    plot_button: QtWidgets.QToolButton
+    reset_button: QtWidgets.QToolButton
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed
-            )
-        )
-
-        layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)
 
-        self.plotter_selector = QtWidgets.QComboBox(self)
-        layout.addWidget(self.plotter_selector)
+        left_controls = QtWidgets.QVBoxLayout()
+        layout.addLayout(left_controls)
 
-        # self.dimensions_selector = DimensionSelector(self)
-        # layout.addWidget(self.dimensions_selector)
-        self.dimensions_columns = QtWidgets.QColumnView(self)
-        self.dimensions_columns.setModel(DataArrayDimensionsItemModel(xr.DataArray()))
+        self.plotter_controls = QtWidgets.QStackedWidget()
+        layout.addWidget(self.plotter_controls)
 
+        self.plotter_selector = QtWidgets.QComboBox()
+        left_controls.addWidget(self.plotter_selector)
 
-class DimensionSelector(QtWidgets.QGroupBox):
-    requested_dimensions: list[str]
+        for num in range(5):
+            name = f"Option {num}"
+            widget = QtWidgets.QGroupBox()
+            widget.setTitle(f"Content {num} Configuration")
 
-    available_dimensions: dict[str, xr.DataArray]
+            self.plotter_selector.addItem(name)
+            self.plotter_controls.addWidget(widget)
 
-    reset = QtCore.Signal()
+        self.reset_button = QtWidgets.QToolButton()
+        self.reset_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
+        self.reset_button.setIcon(
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogResetButton
+            )
+        )
+        self.reset_button.setText("Reset")
+        left_controls.addWidget(self.reset_button)
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
-        super().__init__("Dimensions", parent)
+        self.plot_button = QtWidgets.QToolButton()
+        self.plot_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.plot_button.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MediaPlay)
+        )
+        self.plot_button.setText("Plot")
+        left_controls.addWidget(self.plot_button)
 
-        self.reset.connect(self._on_reset)
+        # self.setSizePolicy(
+        #     QtWidgets.QSizePolicy(
+        #         QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed
+        #     )
+        # )
 
-        self.setLayout(QtWidgets.QHBoxLayout())
+        self._init_signals()
 
-    def set_requested_dims(self, dims: Iterable[str]) -> None:
-        self.requested_dimensions = list(dims)
-        self.reset.emit()
+    def _init_signals(self) -> None:
+        self.plot_button.clicked.connect(self._on_plot_clicked)
+        self.plotter_selector.activated[int].connect(
+            self.plotter_controls.setCurrentIndex
+        )
 
-    def _on_reset(self) -> None:
+    @QtCore.Slot()
+    def _on_plot_clicked(self) -> None:
         logger = logging.getLogger(__name__)
-        logger.debug("resetting dimension selector")
-
-        # https://stackoverflow.com/q/4528347/11082165
-        while self.layout().count():
-            widget = self.layout().takeAt(0).widget()
-            logger.debug("removing %r", widget)
-            widget.deleteLater()
-
-        for dim in self.requested_dimensions:
-            self._add_dim_combo(dim)
-
-    def _add_dim_combo(self, dim_name: str) -> None:
-        logger = logging.getLogger(__name__)
-        logger.debug("adding combo %r", dim_name)
-
-        widget = QtWidgets.QWidget(self)
-        layout = QtWidgets.QHBoxLayout()
-        widget.setLayout(layout)
-
-        label = QtWidgets.QLabel(f"{dim_name}: ")
-        layout.addWidget(label)
-
-        combo = QtWidgets.QComboBox()
-        layout.addWidget(combo)
-
-        self.layout().addWidget(widget)
+        logger.debug("plot button clicked")
 
 
-@PlotControls.plotters.register
-class SingleSweepPlotter(DatasetPlotter):
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
-        super().__init__(parent)
+# class DimensionSelector(QtWidgets.QGroupBox):
+#     requested_dimensions: list[str]
+#
+#     available_dimensions: dict[str, xr.DataArray]
+#
+#     reset = QtCore.Signal()
+#
+#     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+#         super().__init__("Dimensions", parent)
+#
+#         self.reset.connect(self._on_reset)
+#
+#         self.setLayout(QtWidgets.QHBoxLayout())
+#
+#     def set_requested_dims(self, dims: Iterable[str]) -> None:
+#         self.requested_dimensions = list(dims)
+#         self.reset.emit()
+#
+#     def _on_reset(self) -> None:
+#         logger = logging.getLogger(__name__)
+#         logger.debug("resetting dimension selector")
+#
+#         # https://stackoverflow.com/q/4528347/11082165
+#         while self.layout().count():
+#             widget = self.layout().takeAt(0).widget()
+#             logger.debug("removing %r", widget)
+#             widget.deleteLater()
+#
+#         for dim in self.requested_dimensions:
+#             self._add_dim_combo(dim)
+#
+#     def _add_dim_combo(self, dim_name: str) -> None:
+#         logger = logging.getLogger(__name__)
+#         logger.debug("adding combo %r", dim_name)
+#
+#         widget = QtWidgets.QWidget(self)
+#         layout = QtWidgets.QHBoxLayout()
+#         widget.setLayout(layout)
+#
+#         label = QtWidgets.QLabel(f"{dim_name}: ")
+#         layout.addWidget(label)
+#
+#         combo = QtWidgets.QComboBox()
+#         layout.addWidget(combo)
+#
+#         self.layout().addWidget(widget)
+#
+#
+# @PlotControls.plotters.register
+# class SingleSweepPlotter(DatasetPlotter):
+#     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+#         super().__init__(parent)
