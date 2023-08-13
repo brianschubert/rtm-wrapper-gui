@@ -184,9 +184,16 @@ class RtmResultsPlots(QtWidgets.QWidget):
 
         logger.debug("plotting")
         self.figure_widget.wipe_axes()
-        plotter.plot(
-            self.figure_widget.canvas.figure, self.active_results.value.dataset
-        )
+        try:
+            plotter.plot(
+                self.figure_widget.canvas.figure, self.active_results.value.dataset
+            )
+        except Exception as ex:
+            logger.error("exception raised during plotting", exc_info=ex)
+            QtWidgets.QMessageBox.critical(
+                self, "Error plotting", f"Exception raised during plotting: {ex}"
+            )
+
         self.figure_widget._refresh_canvas()
 
     def _on_results_changed(self, new_results: util.RtmResults | None) -> None:
