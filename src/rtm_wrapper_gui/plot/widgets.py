@@ -65,10 +65,13 @@ class FigureWidget(QtWidgets.QWidget):
     def _refresh_canvas(self) -> None:
         self.canvas.draw_idle()
 
-    def _set_subplots(self, **kwargs: Any) -> None:
-        # Remove all existing axes.
+    def wipe_axes(self) -> None:
+        """Remove all existing axes."""
         for ax in self.axes.flat:
             self.canvas.figure.delaxes(ax)
+
+    def _set_subplots(self, **kwargs: Any) -> None:
+        self.wipe_axes()
 
         # Create the requested axes.
         axes: Axes | np.ndarray = self.canvas.figure.subplots(**kwargs)
