@@ -11,7 +11,7 @@ import numpy as np
 import xarray as xr
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from rtm_wrapper_gui import util
 
@@ -412,8 +412,12 @@ class _LabelledListWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.setLayout(QtWidgets.QVBoxLayout())
 
+        font = QtGui.QFont()
+        font.setBold(True)
+
         self.label = QtWidgets.QLabel()
-        self.label.setText(label)
+        self.label.setText(f"{label}:")
+        self.label.setFont(font)
         self.layout().addWidget(self.label)
 
         self.list = QtWidgets.QListWidget()
