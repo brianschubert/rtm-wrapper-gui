@@ -131,6 +131,12 @@ class RtmResultsPlots(QtWidgets.QWidget):
         layout.addWidget(self.figure_widget)
 
         self.controls = PlotControls(self)
+        self.controls.setSizePolicy(
+            QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+                QtWidgets.QSizePolicy.Policy.Fixed,
+            )
+        )
         layout.addWidget(self.controls)
 
         self._init_signals()
