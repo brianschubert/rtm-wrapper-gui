@@ -56,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Add main vertical splitter.
         self.simulation_panel = SimulationPanel(self.active_results, self)
-        self.plots_widget = RtmResultsPlots(self)
+        self.plots_widget = RtmResultsPlots(self.active_results, self)
 
         top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal, self)
         top_splitter.addWidget(self.simulation_panel)
