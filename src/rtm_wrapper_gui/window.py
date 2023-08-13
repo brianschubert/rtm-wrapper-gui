@@ -43,6 +43,9 @@ class MainWindow(QtWidgets.QMainWindow):
             wrap=True,
         )
 
+        # Emit value changed signal after widgets have been initialized.
+        self.active_results.value = None
+
     def _init_window(self) -> None:
         self.setWindowTitle("RTM Wrapper GUI")
         self.setWindowIcon(QIcon.fromTheme("applications-science"))
