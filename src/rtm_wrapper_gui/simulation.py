@@ -129,7 +129,7 @@ class DataFileSystemModel(QtWidgets.QFileSystemModel):
                 QtWidgets.QStyle.StandardPixmap.SP_FileDialogStart
             )
 
-        if role == Qt.ItemDataRole.DisplayRole.FontRole:
+        if role == Qt.ItemDataRole.DisplayRole.FontRole and index.column() == 0:
             font = QtGui.QFont()
             font.setBold(True)
             return font
