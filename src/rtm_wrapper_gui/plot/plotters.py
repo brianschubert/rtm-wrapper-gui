@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any
 
 import xarray as xr
 
+import rtm_wrapper.plot as rtm_plot
+
 if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
@@ -72,3 +74,9 @@ class FixedDimVariablePlotter(VariableDatasetPlotter):
     @abc.abstractmethod
     def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
         ...
+
+
+class SingleSweepVariablePlotter(FixedDimVariablePlotter):
+    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
+        ax = figure.subplots(1, 1)
+        rtm_plot.plot_sweep_single(data, ax=ax)
