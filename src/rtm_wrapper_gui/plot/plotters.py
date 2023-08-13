@@ -80,3 +80,14 @@ class SingleSweepVariablePlotter(FixedDimVariablePlotter):
     def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
         ax = figure.subplots(1, 1)
         rtm_plot.plot_sweep_single(data, ax=ax)
+
+
+class LegendSweepVariablePlotter(FixedDimVariablePlotter):
+    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
+        ax = figure.subplots(1, 1)
+        rtm_plot.plot_sweep_legend(data, ax=ax)
+
+
+class GridSweepVariablePlotter(FixedDimVariablePlotter):
+    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
+        rtm_plot.plot_sweep_grid(data, fig=figure)

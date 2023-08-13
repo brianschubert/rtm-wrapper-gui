@@ -72,6 +72,9 @@ class FigureWidget(QtWidgets.QWidget):
         for ax in self.axes.flat:
             self.canvas.figure.delaxes(ax)
 
+        # Set axes to empty array of shape (0,).
+        self.axes = np.empty((0,), dtype=object)
+
     def _set_subplots(self, **kwargs: Any) -> None:
         self.wipe_axes()
 
@@ -375,15 +378,6 @@ class FixedDimVariablePlotter(DatasetPlotterConfigWidget):
     def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
         return len(dataset.indexes.dims) == len(self.required_dims)
 
-
-@PlotControls.plotters.register
-class SingleSweepVariablePlotter(FixedDimVariablePlotter):
-    required_dims: tuple[str, ...] = ("x-axis",)
-
-    @property
-    def display_name(self) -> str:
-        return "Single Sweep"
-
     def _get_config(self) -> dict[str, Any]:
         try:
             variable = self.variable_selector.list.currentItem().text()
@@ -399,8 +393,41 @@ class SingleSweepVariablePlotter(FixedDimVariablePlotter):
 
         return {"variable": variable, "dims": dims}
 
+
+@PlotControls.plotters.register
+class SingleSweepVariablePlotter(FixedDimVariablePlotter):
+    required_dims: tuple[str, ...] = ("x-axis",)
+
+    @property
+    def display_name(self) -> str:
+        return "Single Sweep"
+
     def make_plotter(self) -> plotters.DatasetPlotter:
         return plotters.SingleSweepVariablePlotter(**self._get_config())
+
+
+@PlotControls.plotters.register
+class LegendSweepVariablePlotter(FixedDimVariablePlotter):
+    required_dims: tuple[str, ...] = ("legend", "x-axis")
+
+    @property
+    def display_name(self) -> str:
+        return "Legend Sweep"
+
+    def make_plotter(self) -> plotters.DatasetPlotter:
+        return plotters.LegendSweepVariablePlotter(**self._get_config())
+
+
+@PlotControls.plotters.register
+class GridSweepVariablePlotter(FixedDimVariablePlotter):
+    required_dims: tuple[str, ...] = ("grid-y", "grid-x", "x-axis")
+
+    @property
+    def display_name(self) -> str:
+        return "2D Grid Comparison"
+
+    def make_plotter(self) -> plotters.DatasetPlotter:
+        return plotters.GridSweepVariablePlotter(**self._get_config())
 
 
 class _LabelledListWidget(QtWidgets.QWidget):
