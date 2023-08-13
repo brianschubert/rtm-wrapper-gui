@@ -231,7 +231,6 @@ class RtmResultsPlots(QtWidgets.QWidget):
         if active_plotter is not None and not active_plotter.isEnabled():
             logger.debug("active plotter was disabled - resetting to no active plotter")
             self.controls.plotter_selector.setCurrentIndex(-1)
-            self.controls.plotter_controls.setCurrentIndex(-1)
 
 
 class DatasetPlotterConfigWidget(QtWidgets.QWidget):
@@ -291,7 +290,7 @@ class PlotControls(QtWidgets.QWidget):
         left_controls = QtWidgets.QVBoxLayout()
         layout.addLayout(left_controls)
 
-        self.plotter_controls = QtWidgets.QStackedWidget()
+        self.plotter_controls = QtWidgets.QStackedWidget(self)
         self.plotter_controls.hide()  # start hidden
         layout.addWidget(self.plotter_controls)
 
@@ -363,7 +362,8 @@ class FixedDimVariablePlotter(DatasetPlotterConfigWidget):
 
         for widget in self.dim_lists:
             self.layout().removeWidget(widget)
-            # widget.deleteLater()
+            widget.deleteLater()
+        self.dim_lists.clear()
 
         for plot_dim in self.required_dims:
             list_widget = _LabelledListWidget(plot_dim)
