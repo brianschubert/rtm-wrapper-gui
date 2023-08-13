@@ -20,8 +20,7 @@ class DatasetPlotter(abc.ABC):
     Dataset plotters attempt to produce some type of plot for a given dataset.
     """
 
-    @abc.abstractmethod
-    def set_config(self, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         if kwargs:
             raise ValueError(f"received unknown kwargs: {list(kwargs.keys())}")
 
@@ -37,9 +36,9 @@ class VariableDatasetPlotter(DatasetPlotter):
 
     _variable: str | None
 
-    def set_config(self, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         self._variable = kwargs.pop("variable")
-        super().set_config(**kwargs)
+        super().__init__(**kwargs)
 
     def plot(self, figure: Figure, dataset: xr.Dataset) -> None:
         if self._variable is None:
@@ -60,12 +59,9 @@ class FixedDimVariablePlotter(VariableDatasetPlotter):
 
     _dim_shape: tuple[str, ...] | None
 
-    def __init__(self) -> None:
-        self._dim_shape = None
-
-    def set_config(self, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         self._dim_shape = kwargs.pop("dims")
-        super().set_config(**kwargs)
+        super().__init__(**kwargs)
 
     def plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
         if self._dim_shape is None:
