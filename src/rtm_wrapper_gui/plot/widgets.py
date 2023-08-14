@@ -187,7 +187,9 @@ class RtmResultsPlots(QtWidgets.QWidget):
             return
 
         logger.debug("plotting")
+        # TODO reconcile figure clearing logic
         self.figure_widget.wipe_axes()
+        self.figure_widget.canvas.figure.clear()
         try:
             plotter.plot(
                 self.figure_widget.canvas.figure, self.active_results.value.dataset
