@@ -19,6 +19,59 @@ from rtm_wrapper.engines import base as rtm_engines
 from rtm_wrapper_gui import util, workers
 from rtm_wrapper_gui.simulation.base import SimulationProducerMixin
 
+_EXAMPLE_SWEEPS: Final[dict[str, str]] = {
+    "Basic": """\
+import numpy as np
+
+from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
+from rtm_wrapper.simulation import SweepSimulation
+
+sweep = SweepSimulation(
+    {
+        "wavelength__value": np.arange(0.2, 2.5, 0.005),
+    },
+    base=pysixs_default_inputs(),
+)
+
+engine = PySixSEngine()
+""",
+    "Ozone Sweep": """\
+import numpy as np
+
+import rtm_wrapper.parameters as rtm_param
+from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
+from rtm_wrapper.simulation import SweepSimulation
+
+sweep = SweepSimulation(
+    {
+        "atmosphere__ozone": np.arange(0.4, 0.61, 0.04),
+        "wavelength__value": np.arange(0.5, 0.65, 0.0025),
+    },
+    base=pysixs_default_inputs().replace(atmosphere=rtm_param.AtmosphereWaterOzone(1, 0.5)),
+)
+
+engine = PySixSEngine()
+""",
+    "Profile Grid": """\
+import numpy as np
+
+import rtm_wrapper.parameters as rtm_param
+from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
+from rtm_wrapper.simulation import SweepSimulation
+
+sweep = SweepSimulation(
+    {
+        "atmosphere__name": ["MidlatitudeSummer", "SubarcticWinter", "Tropical"],
+        "aerosol_profile__name": ["Maritime", "Urban", "Continental"],
+        "wavelength__value": np.arange(0.2, 2.5, 0.005),
+    },
+    base=pysixs_default_inputs(),
+)
+
+engine = PySixSEngine()
+""",
+}
+
 
 class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
     script_textedit: ScriptTextEdit
@@ -28,6 +81,8 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
     check_button: QtWidgets.QPushButton
 
     format_button: QtWidgets.QPushButton
+
+    example_button: QtWidgets.QPushButton
 
     exec_worker: workers.PythonExecWorker
     exec_thread: QtCore.QThread
@@ -76,6 +131,13 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
         self.format_button.setText("Format")
         button_layout.addWidget(self.format_button)
 
+        self.example_button = QtWidgets.QPushButton()
+        self.example_button.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DirOpenIcon)
+        )
+        self.example_button.setText("Example")
+        button_layout.addWidget(self.example_button)
+
     def _init_workers(self) -> None:
         # Exec worker.
         self.exec_thread = QtCore.QThread()
@@ -103,6 +165,7 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
         self.check_button.clicked.connect(self.check_script)
         self.run_button.clicked.connect(self._on_run_click)
         self.format_button.clicked.connect(self.format_script)
+        self.example_button.clicked.connect(self.load_example)
 
         self.exec_worker.finished[workers.ExecJob].connect(self._on_exec_job_finished)
         self.exec_worker.exception.connect(
@@ -202,6 +265,20 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
                 "Failed to format script",
                 f"Failed to parse scrupt. <pre>{ex}</pre>",
             )
+
+    def load_example(self) -> None:
+        logger = logging.getLogger(__name__)
+
+        selection, clicked_ok = QtWidgets.QInputDialog.getItem(
+            self, "Select example", "Example:", list(_EXAMPLE_SWEEPS.keys())
+        )
+
+        if not clicked_ok:
+            logger.debug("user cancelled example load")
+            return
+
+        logger.debug("loading example '%r'", selection)
+        self.script_textedit.setText(_EXAMPLE_SWEEPS[selection])
 
     def _on_run_click(self) -> None:
         try:
@@ -342,23 +419,7 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
         self.setAcceptRichText(False)
         self.setFont(QtGui.QFont("Monospace"))
         self.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
-        self.setText(
-            """\
-import numpy as np
-
-from rtm_wrapper.engines.sixs import PySixSEngine, pysixs_default_inputs
-from rtm_wrapper.simulation import SweepSimulation
-
-sweep = SweepSimulation(
-    {
-        "wavelength__value": np.arange(0.2, 2.5, 0.005),
-    },
-    base=pysixs_default_inputs(),
-)
-
-engine = PySixSEngine()
-"""
-        )
+        self.setText('# Click "Example" to load an example script.')
 
         keyword_format = QtGui.QTextCharFormat()
         keyword_format.setFontWeight(QtGui.QFont.Weight.Bold)
