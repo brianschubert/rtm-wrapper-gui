@@ -16,7 +16,8 @@ from PySide6.QtCore import Qt
 
 from rtm_wrapper import simulation as rtm_sim
 from rtm_wrapper.engines import base as rtm_engines
-from rtm_wrapper_gui import util, workers
+from rtm_wrapper_gui import util
+from rtm_wrapper_gui.simulation import workers
 from rtm_wrapper_gui.simulation.base import SimulationProducerMixin
 
 _EXAMPLE_SWEEPS: Final[dict[str, str]] = {
