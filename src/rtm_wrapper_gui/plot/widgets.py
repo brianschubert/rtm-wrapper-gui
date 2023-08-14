@@ -298,6 +298,13 @@ class PlotControls(QtWidgets.QWidget):
 
         self.plotter_controls = QtWidgets.QStackedWidget(self)
         self.plotter_controls.hide()  # start hidden
+        # self.plotter_controls.setSizePolicy(
+        #     QtWidgets.QSizePolicy(
+        #         QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+        #         QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+        #     )
+        # )
+        # self.plotter_controls.setMinimumWidth(50)
         layout.addWidget(self.plotter_controls)
 
         self.plotter_selector = QtWidgets.QComboBox()
@@ -468,6 +475,25 @@ class SelectionListWidget(QtWidgets.QWidget):
         self.label.setFont(font)
         self.layout().addWidget(self.label)
 
+        # self.setSizePolicy(
+        #     QtWidgets.QSizePolicy(
+        #         QtWidgets.QSizePolicy.Policy.Minimum,
+        #         QtWidgets.QSizePolicy.Policy.Minimum,
+        #     )
+        # )
+
         self.list = QtWidgets.QListWidget()
         self.list.setFixedHeight(100)
         self.layout().addWidget(self.list)
+
+        # self.list.setSizePolicy(
+        #     QtWidgets.QSizePolicy(
+        #         QtWidgets.QSizePolicy.Policy.Minimum,
+        #         QtWidgets.QSizePolicy.Policy.Minimum,
+        #     )
+        # )
+        self.list.setSizeAdjustPolicy(
+            QtWidgets.QListWidget.SizeAdjustPolicy.AdjustToContents
+        )
+        # self.list.setMinimumWidth(50)
+        # self.setMinimumWidth(50)
