@@ -399,7 +399,6 @@ class SingleSweepVariablePlotter(MultiSelectPlotterConfigWidget):
     def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
         return {
             "variable": list(dataset.data_vars.keys()),
-            "xaxis_dim": list(dataset.indexes.dims),
         }
 
     def make_plotter(self) -> plotters.DatasetPlotter:
