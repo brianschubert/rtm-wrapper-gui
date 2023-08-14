@@ -287,6 +287,12 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
                 compile(
                     self.script_textedit.toPlainText(), "<user script>", mode="exec"
                 ),
+                globals={
+                    "display": lambda obj: QtWidgets.QMessageBox.about(
+                        None, "Script display", f"<pre>{obj}</pre>"
+                    ),
+                    "logger": logging.getLogger(f"{__name__}.<user script>"),
+                },
             )
         except Exception as ex:
             QtWidgets.QMessageBox.warning(
