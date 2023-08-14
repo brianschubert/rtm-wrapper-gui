@@ -406,25 +406,28 @@ class SingleSweepVariablePlotter(FixedDimVariablePlotter):
         return plotters.SingleSweepVariablePlotter(**self._get_config())
 
 
-@PlotControls.plotters.register
-class LegendSweepVariablePlotter(FixedDimVariablePlotter):
-    required_dims: tuple[str, ...] = ("legend", "x-axis")
+# @PlotControls.plotters.register
+# class LegendSweepVariablePlotter(FixedDimVariablePlotter):
+#     required_dims: tuple[str, ...] = ("legend", "x-axis")
+#
+#     @property
+#     def display_name(self) -> str:
+#         return "Legend Sweep"
+#
+#     def make_plotter(self) -> plotters.DatasetPlotter:
+#         return plotters.LegendSweepVariablePlotter(**self._get_config())
 
-    @property
-    def display_name(self) -> str:
-        return "Legend Sweep"
-
-    def make_plotter(self) -> plotters.DatasetPlotter:
-        return plotters.LegendSweepVariablePlotter(**self._get_config())
-
-
-@PlotControls.plotters.register
-class GridSweepVariablePlotter(FixedDimVariablePlotter):
-    required_dims: tuple[str, ...] = ("grid-y", "grid-x", "x-axis")
-
-    @property
-    def display_name(self) -> str:
-        return "2D Grid Comparison"
+# @PlotControls.plotters.register
+# class GridSweepVariablePlotter(FixedDimVariablePlotter):
+#     required_dims: tuple[str, ...] = ("grid-y", "grid-x", "x-axis")
+#
+#     @property
+#     def display_name(self) -> str:
+#         return "2D Grid Comparison"
+#
+#     def make_plotter(self) -> plotters.DatasetPlotter:
+#         return plotters.GridSweepVariablePlotter(**self._get_config())
+#
 
     def make_plotter(self) -> plotters.DatasetPlotter:
         return plotters.GridSweepVariablePlotter(**self._get_config())
