@@ -737,14 +737,14 @@ typing-extensions = "^4.7.1"
 xarray = "^2023.7.0"
 
 [package.extras]
-6s = ["6s-bin @ git+https://github.com/brianschubert/6s-bin.git[][]"]
+6s = ["6s-bin @ git+https://github.com/brianschubert/6s-bin.git"]
 splib07 = ["splib07-loader @ git+https://github.com/brianschubert/splib07-loader.git"]
 
 [package.source]
 type = "git"
 url = "https://github.com/brianschubert/rtm-wrapper.git"
 reference = "develop"
-resolved_reference = "1ae9da78e33a01f5bbe1c26f9c05c79f1b5b6ec7"
+resolved_reference = "e083654636837918ead37438aa7c634fb500b780"
 
 [[package]]
 name = "scipy"
@@ -883,4 +883,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9,<3.12"
-content-hash = "5eda9f8963069fa969e499d37c7814a2320269f01b0bb77ccb9a6021c09309e1"
+content-hash = "5f65c7ad1a9fd683623091189a77436ff5a078faba1c3fe804f985251bd43317"
