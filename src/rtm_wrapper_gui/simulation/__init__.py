@@ -21,7 +21,7 @@ import rtm_wrapper.parameters as rtm_param
 import rtm_wrapper.simulation as rtm_sim
 from rtm_wrapper_gui import util
 
-from .base import SimulationProducer
+from .base import SimulationProducerMixin
 from .file import FileSimulationProducer
 from .interactive import InteractiveSimulationProducer
 from .script import ScriptSimulationProducer
@@ -66,13 +66,7 @@ class SimulationPanel(QtWidgets.QWidget):
             self.active_results.value = display.results
 
 
-class SimulationProducer(QtWidgets.QWidget):
-    new_results = QtCore.Signal(util.RtmResults)
-
-
-class SimulationProducerTabs(QtWidgets.QTabWidget):
-    new_results = QtCore.Signal(util.RtmResults)
-
+class SimulationProducerTabs(SimulationProducerMixin, QtWidgets.QTabWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 

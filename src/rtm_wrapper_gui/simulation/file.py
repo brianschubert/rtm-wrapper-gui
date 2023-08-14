@@ -9,7 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
 from rtm_wrapper_gui import util
-from rtm_wrapper_gui.simulation.base import SimulationProducer
+from rtm_wrapper_gui.simulation.base import SimulationProducerMixin
 
 
 class DataFileSystemModel(QtWidgets.QFileSystemModel):
@@ -46,7 +46,7 @@ class DataFileSystemModel(QtWidgets.QFileSystemModel):
         return file_info.isFile() and file_info.suffix() in self.data_suffixes
 
 
-class FileSimulationProducer(SimulationProducer, QtWidgets.QWidget):
+class FileSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
     browse_button: QtWidgets.QPushButton
 
     file_tree: QtWidgets.QTreeView

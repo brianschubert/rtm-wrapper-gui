@@ -3,10 +3,10 @@ from __future__ import annotations
 from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
-from rtm_wrapper_gui.simulation.base import SimulationProducer
+from rtm_wrapper_gui.simulation.base import SimulationProducerMixin
 
 
-class InteractiveSimulationProducer(SimulationProducer):
+class InteractiveSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
     splash_textedit: QtWidgets.QTextEdit()
 
     def __init__(self, parent: QtGui.QTextDocument | None = None) -> None:

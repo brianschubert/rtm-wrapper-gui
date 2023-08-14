@@ -17,10 +17,10 @@ from PySide6.QtCore import Qt
 from rtm_wrapper import simulation as rtm_sim
 from rtm_wrapper.engines import base as rtm_engines
 from rtm_wrapper_gui import util, workers
-from rtm_wrapper_gui.simulation.base import SimulationProducer
+from rtm_wrapper_gui.simulation.base import SimulationProducerMixin
 
 
-class ScriptSimulationProducer(SimulationProducer):
+class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
     script_textedit: ScriptTextEdit
 
     run_button: QtWidgets.QPushButton
