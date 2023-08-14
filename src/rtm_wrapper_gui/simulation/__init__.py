@@ -144,7 +144,8 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
             tab_name = results.file.name
         else:
             tab_name = f"*Unsaved {next(self.tab_counter)}"
-        self.addTab(summary, tab_name)
+        index = self.addTab(summary, tab_name)
+        self.setCurrentIndex(index)
 
     @QtCore.Slot()
     def refresh_current_label(self) -> None:
