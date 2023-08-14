@@ -744,7 +744,7 @@ splib07 = ["splib07-loader @ git+https://github.com/brianschubert/splib07-loader
 type = "git"
 url = "https://github.com/brianschubert/rtm-wrapper.git"
 reference = "develop"
-resolved_reference = "e083654636837918ead37438aa7c634fb500b780"
+resolved_reference = "6a1acee5e2a057ecc8974e1f5677d600aa944608"
 
 [[package]]
 name = "scipy"

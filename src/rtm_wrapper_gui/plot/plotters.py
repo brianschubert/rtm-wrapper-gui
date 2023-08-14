@@ -54,40 +54,46 @@ class VariableDatasetPlotter(DatasetPlotter):
         ...
 
 
-class FixedDimVariablePlotter(VariableDatasetPlotter):
-    """
-    Variable plotter that relies on a fixed layout for the dataset dimensions.
-    """
-
-    _dim_shape: tuple[str, ...] | None
-
-    def __init__(self, **kwargs: Any) -> None:
-        self._dim_shape = kwargs.pop("dims")
-        super().__init__(**kwargs)
-
+class SingleSweepVariablePlotter(VariableDatasetPlotter):
     def plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
-        if self._dim_shape is None:
-            raise RuntimeError("dim shape not configured")
-        reshaped_data = data.transpose(*self._dim_shape, missing_dims="raise")
-        self._plot_variable(figure, reshaped_data)
-
-    @abc.abstractmethod
-    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
-        ...
-
-
-class SingleSweepVariablePlotter(FixedDimVariablePlotter):
-    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
         ax = figure.subplots(1, 1)
         rtm_plot.plot_sweep_single(data, ax=ax)
 
 
-class LegendSweepVariablePlotter(FixedDimVariablePlotter):
-    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
+class LegendSweepVariablePlotter(VariableDatasetPlotter):
+    _xaxis_dim: str | None
+
+    _legend_dim: str | None
+
+    def __init__(self, **kwargs: Any) -> None:
+        self._xaxis_dim = kwargs.pop("xaxis_dim")
+        self._legend_dim = kwargs.pop("legend_dim")
+        super().__init__(**kwargs)
+
+    def plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
         ax = figure.subplots(1, 1)
-        rtm_plot.plot_sweep_legend(data, ax=ax)
+        rtm_plot.plot_sweep_legend(
+            data, ax=ax, xaxis_dim=self._xaxis_dim, legend_dim=self._legend_dim
+        )
 
 
-class GridSweepVariablePlotter(FixedDimVariablePlotter):
-    def _plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
-        rtm_plot.plot_sweep_grid(data, fig=figure)
+class GridSweepVariablePlotter(VariableDatasetPlotter):
+    _xaxis_dim: str | None
+
+    _grid_y_dim: str | None
+    _grid_x_dim: str | None
+
+    def __init__(self, **kwargs: Any) -> None:
+        self._xaxis_dim = kwargs.pop("xaxis_dim")
+        self._grid_y_dim = kwargs.pop("grid_y_dim")
+        self._grid_x_dim = kwargs.pop("grid_x_dim")
+        super().__init__(**kwargs)
+
+    def plot_variable(self, figure: Figure, data: xr.DataArray) -> None:
+        rtm_plot.plot_sweep_grid(
+            data,
+            fig=figure,
+            xaxis_dim=self._xaxis_dim,
+            grid_y_dim=self._grid_y_dim,
+            grid_x_dim=self._grid_x_dim,
+        )

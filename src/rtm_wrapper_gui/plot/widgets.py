@@ -344,91 +344,110 @@ class PlotControls(QtWidgets.QWidget):
             self.plotter_controls.show()
 
 
-class FixedDimVariablePlotter(DatasetPlotterConfigWidget):
-    required_dims: list[str]
+class MultiSelectPlotterConfigWidget(DatasetPlotterConfigWidget):
+    """
+    Plotter config consisting of several list selections.
+    """
 
-    variable_selector: SelectionListWidget
-
-    dim_lists: list[SelectionListWidget]
+    list_selectors: dict[str, SelectionListWidget]
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
-        self.variable_selector = SelectionListWidget("Variable")
-        self.layout().addWidget(self.variable_selector)
-        self.dim_lists = []
+        self.list_selectors = {}
 
     def setup_for_dataset(self, dataset: xr.Dataset) -> None:
         super().setup_for_dataset(dataset)
 
-        self.variable_selector.list.clear()
-        for var_name in dataset.data_vars.keys():
-            self.variable_selector.list.addItem(var_name)
+        self.clear_selectors()
 
-        for widget in self.dim_lists:
-            self.layout().removeWidget(widget)
-            widget.deleteLater()
-        self.dim_lists.clear()
-
-        for plot_dim in self.required_dims:
-            list_widget = SelectionListWidget(plot_dim)
-            self.dim_lists.append(list_widget)
-            for data_dim in dataset.indexes.dims.keys():
-                list_widget.list.addItem(f"{data_dim}")
+        for name, choices in self.selection_choices(dataset).items():
+            list_widget = SelectionListWidget(f"{name}:")
+            self.list_selectors[name] = list_widget
+            list_widget.list.addItems(choices)
             self.layout().addWidget(list_widget)
 
-    def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
-        return len(dataset.indexes.dims) == len(self.required_dims)
+    def clear_selectors(self) -> None:
+        # Remove all current selection widgets.
+        for widget in self.list_selectors.values():
+            self.layout().removeWidget(widget)
+            widget.deleteLater()
+        self.list_selectors.clear()
 
-    def _get_config(self) -> dict[str, Any]:
-        try:
-            variable = self.variable_selector.list.currentItem().text()
-        except AttributeError:
-            raise RuntimeError("variable not selected")
+    def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
+        return {}
 
-        dims = []
-        for req_dim, selector in zip(self.required_dims, self.dim_lists):
+    def current_selections(self) -> dict[str, Any]:
+        selections = {}
+
+        for key, widget in self.list_selectors.items():
             try:
-                dims.append(selector.list.currentItem().text())
+                value = widget.list.currentItem().text()
             except AttributeError:
-                raise RuntimeError(f"no dimension selected for {req_dim}")
+                raise RuntimeError(f"missing selection for {key}")
 
-        return {"variable": variable, "dims": dims}
+            selections[key] = value
+
+        return selections
 
 
 @PlotControls.plotters.register
-class SingleSweepVariablePlotter(FixedDimVariablePlotter):
-    required_dims: tuple[str, ...] = ("x-axis",)
-
+class SingleSweepVariablePlotter(MultiSelectPlotterConfigWidget):
     @property
     def display_name(self) -> str:
         return "Single Sweep"
 
+    def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
+        return {
+            "variable": list(dataset.data_vars.keys()),
+            "xaxis_dim": list(dataset.indexes.dims),
+        }
+
     def make_plotter(self) -> plotters.DatasetPlotter:
-        return plotters.SingleSweepVariablePlotter(**self._get_config())
+        return plotters.SingleSweepVariablePlotter(**self.current_selections())
+
+    def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
+        return len(dataset.indexes.dims) == 1
 
 
-# @PlotControls.plotters.register
-# class LegendSweepVariablePlotter(FixedDimVariablePlotter):
-#     required_dims: tuple[str, ...] = ("legend", "x-axis")
-#
-#     @property
-#     def display_name(self) -> str:
-#         return "Legend Sweep"
-#
-#     def make_plotter(self) -> plotters.DatasetPlotter:
-#         return plotters.LegendSweepVariablePlotter(**self._get_config())
+@PlotControls.plotters.register
+class LegendSweepVariablePlotter(MultiSelectPlotterConfigWidget):
+    @property
+    def display_name(self) -> str:
+        return "Legend Sweep"
 
-# @PlotControls.plotters.register
-# class GridSweepVariablePlotter(FixedDimVariablePlotter):
-#     required_dims: tuple[str, ...] = ("grid-y", "grid-x", "x-axis")
-#
-#     @property
-#     def display_name(self) -> str:
-#         return "2D Grid Comparison"
-#
-#     def make_plotter(self) -> plotters.DatasetPlotter:
-#         return plotters.GridSweepVariablePlotter(**self._get_config())
-#
+    def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
+        return {
+            "variable": list(dataset.data_vars.keys()),
+            "xaxis_dim": list(dataset.indexes.dims),
+            "legend_dim": list(dataset.indexes.dims),
+        }
+
+    def make_plotter(self) -> plotters.DatasetPlotter:
+        return plotters.LegendSweepVariablePlotter(**self.current_selections())
+
+    def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
+        return len(dataset.indexes.dims) == 2
+
+
+@PlotControls.plotters.register
+class GridSweepVariablePlotter(MultiSelectPlotterConfigWidget):
+    @property
+    def display_name(self) -> str:
+        return "2D Grid Comparison"
+
+    def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
+        return {
+            "variable": list(dataset.data_vars.keys()),
+            "xaxis_dim": list(dataset.indexes.dims),
+            "grid_y_dim": list(dataset.indexes.dims),
+            "grid_x_dim": list(dataset.indexes.dims),
+        }
+
+    def make_plotter(self) -> plotters.DatasetPlotter:
+        return plotters.GridSweepVariablePlotter(**self.current_selections())
+
+    def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
+        return len(dataset.indexes.dims) == 3
 
 
 class SelectionListWidget(QtWidgets.QWidget):
@@ -444,7 +463,7 @@ class SelectionListWidget(QtWidgets.QWidget):
         font.setBold(True)
 
         self.label = QtWidgets.QLabel()
-        self.label.setText(f"{label}:")
+        self.label.setText(label)
         self.label.setFont(font)
         self.layout().addWidget(self.label)
 
