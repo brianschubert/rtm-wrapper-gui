@@ -128,6 +128,7 @@ class RtmResultsPlots(QtWidgets.QWidget):
         self.active_results = results_box
 
         layout = QtWidgets.QVBoxLayout()
+        # layout.setSpacing(0)
         self.setLayout(layout)
 
         self.figure_widget = FigureWidget(self)
@@ -346,13 +347,13 @@ class PlotControls(QtWidgets.QWidget):
 class FixedDimVariablePlotter(DatasetPlotterConfigWidget):
     required_dims: list[str]
 
-    variable_selector: _LabelledListWidget
+    variable_selector: SelectionListWidget
 
-    dim_lists: list[_LabelledListWidget]
+    dim_lists: list[SelectionListWidget]
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
-        self.variable_selector = _LabelledListWidget("Variable")
+        self.variable_selector = SelectionListWidget("Variable")
         self.layout().addWidget(self.variable_selector)
         self.dim_lists = []
 
@@ -369,7 +370,7 @@ class FixedDimVariablePlotter(DatasetPlotterConfigWidget):
         self.dim_lists.clear()
 
         for plot_dim in self.required_dims:
-            list_widget = _LabelledListWidget(plot_dim)
+            list_widget = SelectionListWidget(plot_dim)
             self.dim_lists.append(list_widget)
             for data_dim in dataset.indexes.dims.keys():
                 list_widget.list.addItem(f"{data_dim}")
@@ -429,11 +430,8 @@ class SingleSweepVariablePlotter(FixedDimVariablePlotter):
 #         return plotters.GridSweepVariablePlotter(**self._get_config())
 #
 
-    def make_plotter(self) -> plotters.DatasetPlotter:
-        return plotters.GridSweepVariablePlotter(**self._get_config())
 
-
-class _LabelledListWidget(QtWidgets.QWidget):
+class SelectionListWidget(QtWidgets.QWidget):
     label: QtWidgets.QLabel
 
     list: QtWidgets.QListWidget
@@ -451,4 +449,5 @@ class _LabelledListWidget(QtWidgets.QWidget):
         self.layout().addWidget(self.label)
 
         self.list = QtWidgets.QListWidget()
+        self.list.setFixedHeight(100)
         self.layout().addWidget(self.list)
