@@ -4,10 +4,12 @@ import logging
 import pathlib
 from typing import Any, Iterable
 
+import packaging.version
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
 
+import rtm_wrapper
 from rtm_wrapper_gui import util
 from rtm_wrapper_gui.simulation.base import SimulationProducerMixin
 
@@ -108,8 +110,11 @@ class FileSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
             return
         logger.debug("loaded dataset\n%r", dataset)
 
-        results = util.RtmResults(dataset, path)
-        self.new_results.emit(results)
+        confirm_load = _interactive_confirm_version(self, dataset)
+
+        if confirm_load:
+            results = util.RtmResults(dataset, path)
+            self.new_results.emit(results)
 
 
 def _show_open_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
@@ -129,3 +134,51 @@ def _show_open_file_dialog(caption: str, filter: str) -> pathlib.Path | None:
         return None
 
     return pathlib.Path(selected_file)
+
+
+def _interactive_confirm_version(
+    parent: QtWidgets.QWidget, dataset: xr.Dataset
+) -> bool:
+    try:
+        version_attr: str = dataset.attrs["version"]
+    except KeyError:
+        reply = QtWidgets.QMessageBox.question(
+            parent,
+            "Missing version",
+            "Dataset has no recorded version tag. Load anyway?",
+        )
+        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
+    try:
+        parsed_version = packaging.version.parse(version_attr)
+    except (AttributeError, ValueError):
+        reply = QtWidgets.QMessageBox.question(
+            parent,
+            "Malformed version",
+            f"Could not interpret dataset generation version '{version_attr}'. Load anyway?",
+        )
+        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
+    current_version = packaging.version.parse(rtm_wrapper.__version__)
+
+    if parsed_version.is_devrelease and not current_version.is_devrelease:
+        reply = QtWidgets.QMessageBox.question(
+            parent,
+            "Confirm development version",
+            f"Results were generated with a developmental version ({parsed_version})."
+            f" The contents may not be compatible with the current version ({current_version}). "
+            f"Load anyway?",
+        )
+        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
+    if current_version.major != parsed_version.major:
+        reply = QtWidgets.QMessageBox.question(
+            parent,
+            "Confirm different major version",
+            f"Results were generated with a different major version ({parsed_version})."
+            f" The contents may not be compatible with the current version ({current_version}). "
+            f"Load anyway?",
+        )
+        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
+    return True
