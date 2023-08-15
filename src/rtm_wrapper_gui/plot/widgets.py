@@ -379,9 +379,14 @@ class MultiSelectPlotterConfigWidget(DatasetPlotterConfigWidget):
             list_widget = SelectionListWidget(f"{name}:")
             self.list_selectors[name] = list_widget
             for choice in choices:
+                if isinstance(choice, tuple):
+                    choice_display, choice_value = choice
+                else:
+                    choice_display = choice_value = choice
+
                 item = QtWidgets.QListWidgetItem()
-                item.setText(choice.upper())
-                item.setData(Qt.ItemDataRole.UserRole, choice)
+                item.setText(choice_display)
+                item.setData(Qt.ItemDataRole.UserRole, choice_value)
                 list_widget.list.addItem(item)
             self.layout().addWidget(list_widget)
 
@@ -392,7 +397,9 @@ class MultiSelectPlotterConfigWidget(DatasetPlotterConfigWidget):
             widget.deleteLater()
         self.list_selectors.clear()
 
-    def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
+    def selection_choices(
+        self, dataset: xr.Dataset
+    ) -> dict[str, list[str | tuple[str, str]]]:
         return {}
 
     def current_selections(self) -> dict[str, Any]:
@@ -415,9 +422,14 @@ class SingleSweepVariablePlotter(MultiSelectPlotterConfigWidget):
     def display_name(self) -> str:
         return "Single Sweep"
 
-    def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
-        return {
-            "variable": list(dataset.data_vars.keys()),
+    def selection_choices(
+        self, dataset: xr.Dataset
+    ) -> dict[str, list[tuple[str, str]]]:
+        return {  # type: ignore
+            "variable": [
+                (variable.attrs.get("title", variable.name), variable.name)
+                for variable in dataset.data_vars.values()
+            ],
         }
 
     def make_plotter(self) -> plotters.DatasetPlotter:
@@ -447,10 +459,17 @@ class LegendSweepVariablePlotter(MultiSelectPlotterConfigWidget):
         return "Legend Sweep"
 
     def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
-        return {
-            "variable": list(dataset.data_vars.keys()),
-            "xaxis_dim": list(dataset.indexes.dims),
-            "legend_dim": list(dataset.indexes.dims),
+        return {  # type: ignore
+            "variable": [
+                (variable.attrs.get("title", variable.name), variable.name)
+                for variable in dataset.data_vars.values()
+            ],
+            "xaxis_dim": [
+                (_dim_name(dataset, dim), dim) for dim in dataset.indexes.dims
+            ],
+            "legend_dim": [
+                (_dim_name(dataset, dim), dim) for dim in dataset.indexes.dims
+            ],
         }
 
     def make_plotter(self) -> plotters.DatasetPlotter:
@@ -467,11 +486,20 @@ class GridSweepVariablePlotter(MultiSelectPlotterConfigWidget):
         return "2D Grid Comparison"
 
     def selection_choices(self, dataset: xr.Dataset) -> dict[str, list[str]]:
-        return {
-            "variable": list(dataset.data_vars.keys()),
-            "xaxis_dim": list(dataset.indexes.dims),
-            "grid_y_dim": list(dataset.indexes.dims),
-            "grid_x_dim": list(dataset.indexes.dims),
+        return {  # type: ignore
+            "variable": [
+                (variable.attrs.get("title", variable.name), variable.name)
+                for variable in dataset.data_vars.values()
+            ],
+            "xaxis_dim": [
+                (_dim_name(dataset, dim), dim) for dim in dataset.indexes.dims
+            ],
+            "grid_y_dim": [
+                (_dim_name(dataset, dim), dim) for dim in dataset.indexes.dims
+            ],
+            "grid_x_dim": [
+                (_dim_name(dataset, dim), dim) for dim in dataset.indexes.dims
+            ],
         }
 
     def make_plotter(self) -> plotters.DatasetPlotter:
@@ -520,3 +548,11 @@ class SelectionListWidget(QtWidgets.QWidget):
         )
         # self.list.setMinimumWidth(50)
         # self.setMinimumWidth(50)
+
+
+def _dim_name(data: xr.Dataset, dim: str) -> str:
+    try:
+        coord = data.coords[dim]
+        return coord.attrs["title"]
+    except KeyError:
+        return dim
