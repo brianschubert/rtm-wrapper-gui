@@ -12,6 +12,7 @@ import xarray as xr
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6.QtCore import Qt
 
 from rtm_wrapper_gui import util
 
@@ -377,7 +378,11 @@ class MultiSelectPlotterConfigWidget(DatasetPlotterConfigWidget):
         for name, choices in self.selection_choices(dataset).items():
             list_widget = SelectionListWidget(f"{name}:")
             self.list_selectors[name] = list_widget
-            list_widget.list.addItems(choices)
+            for choice in choices:
+                item = QtWidgets.QListWidgetItem()
+                item.setText(choice.upper())
+                item.setData(Qt.ItemDataRole.UserRole, choice)
+                list_widget.list.addItem(item)
             self.layout().addWidget(list_widget)
 
     def clear_selectors(self) -> None:
@@ -395,7 +400,7 @@ class MultiSelectPlotterConfigWidget(DatasetPlotterConfigWidget):
 
         for key, widget in self.list_selectors.items():
             try:
-                value = widget.list.currentItem().text()
+                value = widget.list.currentItem().data(Qt.ItemDataRole.UserRole)
             except AttributeError:
                 raise RuntimeError(f"missing selection for {key}")
 
