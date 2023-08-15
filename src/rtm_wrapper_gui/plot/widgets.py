@@ -147,7 +147,14 @@ class RtmResultsPlots(QtWidgets.QWidget):
 
     def _init_signals(self) -> None:
         self.controls.plot_button.clicked.connect(self._on_plot_clicked)
+        self.controls.reset_button.clicked.connect(self.reset_figure)
         self.active_results.value_changed[object].connect(self._on_results_changed)
+
+    def reset_figure(self) -> None:
+        # TODO reconcile figure clearing logic
+        self.figure_widget.wipe_axes()
+        self.figure_widget.canvas.figure.clear()
+        self.figure_widget._refresh_canvas()
 
     @QtCore.Slot()
     def _on_plot_clicked(self) -> None:
@@ -187,9 +194,7 @@ class RtmResultsPlots(QtWidgets.QWidget):
             return
 
         logger.debug("plotting")
-        # TODO reconcile figure clearing logic
-        self.figure_widget.wipe_axes()
-        self.figure_widget.canvas.figure.clear()
+        self.reset_figure()
         try:
             plotter.plot(
                 self.figure_widget.canvas.figure, self.active_results.value.dataset
@@ -412,6 +417,19 @@ class SingleSweepVariablePlotter(MultiSelectPlotterConfigWidget):
 
     def make_plotter(self) -> plotters.DatasetPlotter:
         return plotters.SingleSweepVariablePlotter(**self.current_selections())
+
+    def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
+        return len(dataset.indexes.dims) == 1
+
+
+@PlotControls.plotters.register
+class SingleSweepVariablePlotter(DatasetPlotterConfigWidget):
+    @property
+    def display_name(self) -> str:
+        return "Single Sweep - all"
+
+    def make_plotter(self) -> plotters.DatasetPlotter:
+        return plotters.SingleSweepAllVariablesPlotter()
 
     def can_plot_dataset(self, dataset: xr.Dataset) -> bool:
         return len(dataset.indexes.dims) == 1

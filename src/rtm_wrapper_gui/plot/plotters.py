@@ -5,6 +5,7 @@ Dataset plotters.
 from __future__ import annotations
 
 import abc
+import math
 from typing import TYPE_CHECKING, Any
 
 import xarray as xr
@@ -52,6 +53,22 @@ class VariableDatasetPlotter(DatasetPlotter):
     @abc.abstractmethod
     def plot_variable(self, figure: Figure, variable: xr.DataArray):
         ...
+
+
+class SingleSweepAllVariablesPlotter(DatasetPlotter):
+    def plot(self, figure: Figure, dataset: xr.Dataset) -> None:
+        num_vars = len(dataset.data_vars)
+
+        n_cols = math.ceil(num_vars**0.5)
+        n_rows = math.ceil(num_vars / n_cols)
+
+        axs = figure.subplots(n_rows, n_cols)
+
+        for ax, variable in zip(axs.flat, dataset.data_vars.values()):
+            rtm_plot.plot_sweep_single(variable, ax=ax)
+
+        for unused_ax in axs.flat[num_vars:]:
+            unused_ax.axis("off")
 
 
 class SingleSweepVariablePlotter(VariableDatasetPlotter):
