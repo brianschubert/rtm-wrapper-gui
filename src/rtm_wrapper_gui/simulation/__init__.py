@@ -40,17 +40,20 @@ class SimulationPanel(QtWidgets.QWidget):
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self.setLayout(QtWidgets.QVBoxLayout())
+
+        splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical)
+        splitter.setSizes([500, 500])
+        splitter.setHandleWidth(5)
+        self.layout().addWidget(splitter)
 
         self.active_results = results_box
 
-        layout = QtWidgets.QVBoxLayout()
-        self.setLayout(layout)
-
         self.sim_producers = SimulationProducerTabs()
-        layout.addWidget(self.sim_producers)
+        splitter.addWidget(self.sim_producers)
 
         self.results_tabs = ResultsTabSelection()
-        layout.addWidget(self.results_tabs)
+        splitter.addWidget(self.results_tabs)
 
         self.sim_producers.new_results.connect(self.results_tabs.add_results)
         self.results_tabs.currentChanged[int].connect(self._on_result_selection_change)
@@ -107,6 +110,11 @@ class ResultsTabSelection(QtWidgets.QTabWidget):
         self.tabBarDoubleClicked[int].connect(
             lambda index: self.widget(index)._prompt_save()  # type: ignore
         )
+
+    def sizeHint(self) -> QtCore.QSize:
+        size = super().sizeHint()
+        size.setHeight(300)
+        return size
 
     @QtCore.Slot()
     def close_tab(self, index: int) -> None:
