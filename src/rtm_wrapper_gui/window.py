@@ -54,6 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Setup central widget and layout.
         self.central_widget = QtWidgets.QWidget()
         top_layout = QtWidgets.QVBoxLayout()
+        top_layout.setContentsMargins(0, 0, 0, 0)
         self.central_widget.setLayout(top_layout)
         self.setCentralWidget(self.central_widget)
 
@@ -64,7 +65,7 @@ class MainWindow(QtWidgets.QMainWindow):
         top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal, self)
         top_splitter.addWidget(self.simulation_panel)
         top_splitter.addWidget(self.plots_widget)
-        top_splitter.setHandleWidth(8)
+        top_splitter.setHandleWidth(7)
         top_layout.addWidget(top_splitter)
 
         # Only stretch plots.

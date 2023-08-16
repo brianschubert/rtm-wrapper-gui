@@ -58,6 +58,8 @@ class SimulationPanel(QtWidgets.QWidget):
         self.sim_producers.new_results.connect(self.results_tabs.add_results)
         self.results_tabs.currentChanged[int].connect(self._on_result_selection_change)
 
+        # self.layout().setContentsMargins(0, 0, 0, 0)
+
     @QtCore.Slot(int)
     def _on_result_selection_change(self, tab_index: int) -> None:
         logger = logging.getLogger(__name__)

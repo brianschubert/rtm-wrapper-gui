@@ -146,6 +146,8 @@ class RtmResultsPlots(QtWidgets.QWidget):
 
         self._init_signals()
 
+        self.layout().setContentsMargins(0, 0, 0, 0)
+
     def _init_signals(self) -> None:
         self.controls.plot_button.clicked.connect(self._on_plot_clicked)
         self.controls.reset_button.clicked.connect(self.reset_figure)
