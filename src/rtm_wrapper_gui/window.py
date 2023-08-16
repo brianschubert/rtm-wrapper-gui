@@ -64,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
         top_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal, self)
         top_splitter.addWidget(self.simulation_panel)
         top_splitter.addWidget(self.plots_widget)
-        top_splitter.setHandleWidth(10)
+        top_splitter.setHandleWidth(8)
         top_layout.addWidget(top_splitter)
 
         # Only stretch plots.
