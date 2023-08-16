@@ -10,6 +10,7 @@ from typing import Final, Iterable
 
 import black
 import isort
+import numpy
 import xarray as xr
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
@@ -451,7 +452,7 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
         self._highlighter = RegexHighlighter(
             [
                 (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
-                (rf"\b(?:{'|'.join(dir(builtins))})\b", builtins_format),
+                (_common_ident_pattern(), builtins_format),
                 ("([\"'])[^\\1]*?\\1", string_format),
                 (r"\b[0-9]+\b", number_format),
                 # TODO improve handling with quotes.
@@ -473,3 +474,19 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
                 "    ",
             )
         super().keyPressEvent(event)
+
+
+def _common_ident_pattern() -> str:
+    """
+    Return regex pattern for matching commons identifiers.
+
+    The returned pattern matches both Python builtins and top-level numpy identifiers.
+    """
+
+    builtin_alts = "|".join(dir(builtins))
+    builtins_pattern = f"(?:{builtin_alts})"
+
+    numpy_alts = "|".join(dir(numpy))
+    numpy_pattern = rf"(?:n(?:p|umpy)\.(?:{numpy_alts}))"
+
+    return rf"\b(?:{builtins_pattern}|{numpy_pattern})\b"
