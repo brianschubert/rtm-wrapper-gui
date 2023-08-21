@@ -30,7 +30,7 @@ from rtm_wrapper.simulation import SweepSimulation
 
 sweep = SweepSimulation(
     {
-        "wavelength__value": np.arange(0.2, 2.5, 0.005),
+        "wavelength.value": np.arange(0.2, 2.5, 0.005),
     },
     base=pysixs_default_inputs(),
 )
@@ -46,10 +46,10 @@ from rtm_wrapper.simulation import SweepSimulation
 
 sweep = SweepSimulation(
     {
-        "atmosphere__ozone": np.arange(0.4, 0.61, 0.04),
-        "wavelength__value": np.arange(0.5, 0.65, 0.0025),
+        "wavelength.value": np.arange(0.5, 0.65, 0.0025),
+        "atmosphere.ozone": np.arange(0.4, 0.61, 0.04),
     },
-    base=pysixs_default_inputs().replace(atmosphere=rtm_param.AtmosphereWaterOzone(1, 0.5)),
+    base=pysixs_default_inputs().replace(atmosphere=rtm_param.AtmosphereWaterOzone(water=2.0)),
 )
 
 engine = PySixSEngine()
@@ -63,9 +63,9 @@ from rtm_wrapper.simulation import SweepSimulation
 
 sweep = SweepSimulation(
     {
-        "atmosphere__name": ["MidlatitudeSummer", "SubarcticWinter", "Tropical"],
-        "aerosol_profile__name": ["Maritime", "Urban", "Continental"],
-        "wavelength__value": np.arange(0.2, 2.5, 0.005),
+        "wavelength.value": np.arange(0.2, 2.5, 0.005),
+        "atmosphere.name": ["MidlatitudeSummer", "SubarcticWinter", "Tropical"],
+        "aerosol_profile.name": ["Maritime", "Urban", "Continental"],
     },
     base=pysixs_default_inputs(),
 )

@@ -429,16 +429,22 @@ def _show_save_file_dialog(
 
 
 def _parameter_tree(param: rtm_param.Parameter) -> Iterator[QtWidgets.QTreeWidgetItem]:
-    hints = typing.get_type_hints(type(param))
+    for field_name in param._fields:
+        try:
+            value = getattr(param, field_name)
+            missing = False
+        except rtm_param.UnsetParameterError:
+            value = "<not set>"
+            missing = True
 
-    for hint_name in hints.keys():
-        value = getattr(param, hint_name)
         if isinstance(value, rtm_param.Parameter):
-            branch = QtWidgets.QTreeWidgetItem([hint_name, type(value).__name__])
+            branch = QtWidgets.QTreeWidgetItem([field_name, type(value).__name__])
             for child in _parameter_tree(value):
                 branch.addChild(child)
         else:
-            branch = QtWidgets.QTreeWidgetItem([hint_name, repr(value)])
-            for meta_key, meta_value in param.get_metadata(hint_name).items():
+            branch = QtWidgets.QTreeWidgetItem(
+                [field_name, repr(value) if not missing else value]
+            )
+            for meta_key, meta_value in param.get_metadata(field_name).items():
                 branch.addChild(QtWidgets.QTreeWidgetItem([meta_key, meta_value]))
         yield branch
