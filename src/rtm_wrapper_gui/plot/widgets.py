@@ -347,6 +347,7 @@ class PlotControls(QtWidgets.QWidget):
         # )
 
         self._init_signals()
+        self.layout().setContentsMargins(10, 0, 10, 10)
 
     def _init_signals(self) -> None:
         self.plotter_selector.currentIndexChanged[int].connect(self._on_plotter_changed)
