@@ -223,6 +223,8 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
             )
             return False
 
+        self.script_textedit.refresh_highlight()
+
         assignments = [
             target.id
             for node in tree.body
@@ -281,6 +283,7 @@ class ScriptSimulationProducer(SimulationProducerMixin, QtWidgets.QWidget):
 
         logger.debug("loading example '%r'", selection)
         self.script_textedit.setText(_EXAMPLE_SWEEPS[selection])
+        self.script_textedit.refresh_highlight()
 
     def _on_run_click(self) -> None:
         try:
@@ -394,7 +397,7 @@ class RegexHighlighter(QtGui.QSyntaxHighlighter):
     - https://github.com/PySide/Examples/blob/master/examples/richtext/syntaxhighlighter.py
     """
 
-    _patterns: list[tuple[re.Pattern, QtGui.QTextCharFormat]]
+    patterns: list[tuple[re.Pattern, QtGui.QTextCharFormat]]
 
     def __init__(
         self,
@@ -402,12 +405,17 @@ class RegexHighlighter(QtGui.QSyntaxHighlighter):
         parent: QtGui.QTextDocument | None = None,
     ) -> None:
         super().__init__(parent)
-        self._patterns = [
+        self.set_patterns(patterns)
+
+    def set_patterns(
+        self, patterns: Iterable[tuple[re.Pattern | str, QtGui.QTextCharFormat]]
+    ):
+        self.patterns = [
             (re.compile(pattern), text_format) for pattern, text_format in patterns
         ]
 
     def highlightBlock(self, text: str) -> None:
-        for pattern, text_format in self._patterns:
+        for pattern, text_format in self.patterns:
             for match in pattern.finditer(text):
                 start, end = match.span()
                 self.setFormat(start, end - start, text_format)
@@ -417,6 +425,8 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
     _highlighter: RegexHighlighter
 
     _SPECIAL_IDENTS: Final = ["sweep", "engine"]
+
+    # _highlight_refresh_timer: QtCore.QTimer
 
     def __init__(
         self,
@@ -429,39 +439,28 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
         self.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
         self.setText('# Click "Example" to load an example script.')
 
-        keyword_format = QtGui.QTextCharFormat()
-        keyword_format.setFontWeight(QtGui.QFont.Weight.Bold)
-        keyword_format.setForeground(Qt.GlobalColor.darkBlue)
-
-        builtins_format = QtGui.QTextCharFormat()
-        builtins_format.setForeground(Qt.GlobalColor.darkMagenta)
-
-        string_format = QtGui.QTextCharFormat()
-        string_format.setForeground(Qt.GlobalColor.darkGreen)
-
-        number_format = QtGui.QTextCharFormat()
-        number_format.setForeground(Qt.GlobalColor.blue)
-
-        comment_format = QtGui.QTextCharFormat()
-        comment_format.setForeground(Qt.GlobalColor.darkGray)
-        comment_format.setFontItalic(True)
-
         special_format = QtGui.QTextCharFormat()
         special_format.setFontWeight(QtGui.QFont.Weight.Bold)
 
         self._highlighter = RegexHighlighter(
-            [
-                (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
-                (_common_ident_pattern(), builtins_format),
-                ("([\"'])[^\\1]*?\\1", string_format),
-                (r"\b[0-9]+\b", number_format),
-                # TODO improve handling with quotes.
-                # Only highlight comments on lines that don't contain ' or ".
-                (r"^(?:[^'\"]*)\#.*$", comment_format),
-                (rf"\b(?:{'|'.join(self._SPECIAL_IDENTS)})\b", special_format),
-            ],
+            [],
             self.document(),
         )
+        self.refresh_highlight()
+
+    # TODO decide whether to update highlighting periodically on to only refresh
+    #   on direct user interaction.
+
+    #     self._highlight_refresh_timer = QtCore.QTimer(self)
+    #     self._highlight_refresh_timer.timeout.connect(self.refresh_highlight)
+    #
+    # def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
+    #     self._highlight_refresh_timer.start(1000)
+    #     super().focusInEvent(event)
+    #
+    # def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+    #     self._highlight_refresh_timer.stop()
+    #     super().focusOutEvent(event)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         # Replace tabs with spaces.
@@ -474,6 +473,62 @@ class ScriptTextEdit(QtWidgets.QTextEdit):
                 "    ",
             )
         super().keyPressEvent(event)
+
+    def refresh_highlight(self) -> None:
+        logger = logging.getLogger(__name__)
+        logger.debug("refreshing highlighting")
+
+        special_format = QtGui.QTextCharFormat()
+        special_format.setFontWeight(QtGui.QFont.Weight.Bold)
+
+        field_format = QtGui.QTextCharFormat()
+        field_format.setFontWeight(QtGui.QFont.Weight.Bold)
+        field_format.setForeground(Qt.GlobalColor.darkGreen)
+        # field_format.setFontUnderline(True)
+        # field_format.setUnderlineColor(Qt.GlobalColor.darkGreen)
+
+        field_names = _extract_sweep_fields(self.toPlainText())
+        field_name_patterns = [field.replace(".", "(?:\.|__)") for field in field_names]
+
+        self._highlighter.set_patterns(
+            _base_highlighter_patterns()
+            + [
+                (rf"\b(?:{'|'.join(self._SPECIAL_IDENTS)})\b", special_format),
+                (rf'"(?:{"|".join(field_name_patterns)})"', field_format),
+            ]
+        )
+
+        # Force complete re-highlight, since highlighting rules may have changed.
+        self._highlighter.rehighlight()
+
+
+def _base_highlighter_patterns() -> list[tuple[str, QtGui.QTextCharFormat]]:
+    keyword_format = QtGui.QTextCharFormat()
+    keyword_format.setFontWeight(QtGui.QFont.Weight.Bold)
+    keyword_format.setForeground(Qt.GlobalColor.darkBlue)
+
+    builtins_format = QtGui.QTextCharFormat()
+    builtins_format.setForeground(Qt.GlobalColor.darkMagenta)
+
+    string_format = QtGui.QTextCharFormat()
+    string_format.setForeground(Qt.GlobalColor.darkGreen)
+
+    number_format = QtGui.QTextCharFormat()
+    number_format.setForeground(Qt.GlobalColor.blue)
+
+    comment_format = QtGui.QTextCharFormat()
+    comment_format.setForeground(Qt.GlobalColor.darkGray)
+    comment_format.setFontItalic(True)
+
+    return [
+        (rf"\b(?:{'|'.join(keyword.kwlist)})\b", keyword_format),
+        (_common_ident_pattern(), builtins_format),
+        ("([\"'])[^\\1]*?\\1", string_format),
+        (r"\b[0-9]+\b", number_format),
+        # TODO improve handling with quotes.
+        # Only highlight comments on lines that don't contain ' or ".
+        (r"^(?:[^'\"]*)\#.*$", comment_format),
+    ]
 
 
 def _common_ident_pattern() -> str:
@@ -490,3 +545,81 @@ def _common_ident_pattern() -> str:
     numpy_pattern = rf"(?:n(?:p|umpy)\.(?:{numpy_alts}))"
 
     return rf"\b(?:{builtins_pattern}|{numpy_pattern})\b"
+
+
+def _extract_sweep_fields(script: str) -> list[str]:
+    """
+    Partially interpret the given sweep script in order to resolve the valid
+    field names in the base parameter tree.
+
+    Returns an empty list on failure.
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        tree = ast.parse(script)
+    except SyntaxError:
+        logger.debug("failed to parse script")
+        return []
+
+    # Attempt to locate assignment to "sweep"
+    for index, node in enumerate(tree.body):
+        if isinstance(node, ast.Assign) and any(t.id == "sweep" for t in node.targets):
+            sweep_assign = node
+            prior_nodes = tree.body[:index]
+            break
+    else:
+        logger.debug("sweep assignment not found")
+        return []
+
+    if (
+        not isinstance(sweep_assign.value, ast.Call)
+        and sweep_assign.value.func.id == "SweepSimulation"
+    ):
+        logger.debug("value not SweepSimulation")
+        return []
+
+    for kword in sweep_assign.value.keywords:
+        if kword.arg == "base":
+            base_node = kword.value
+            modified_tree = [
+                *prior_nodes,
+                ast.Assign(
+                    targets=[
+                        ast.Name(
+                            id="base",
+                            lineno=prior_nodes[-1].end_lineno + 1,
+                            col_offset=0,
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=base_node,
+                    lineno=prior_nodes[-1].end_lineno + 1,
+                    col_offset=prior_nodes[-1].col_offset,
+                ),
+            ]
+            break
+    else:
+        logger.debug("no base found")
+        return []
+
+    try:
+        script_locals = {}
+        exec(
+            compile(
+                ast.Module(modified_tree, type_ignores=[]),
+                "<highlight script>",
+                mode="exec",
+            ),
+            {},
+            script_locals,
+        )
+    except Exception as ex:
+        logger.debug("failed to run highlight script", exc_info=ex)
+        return []
+
+    try:
+        return script_locals["base"].get_fields(style=".")
+    except AttributeError as ex:
+        logger.debug("base value does not expose fields", exc_info=ex)
+        return []

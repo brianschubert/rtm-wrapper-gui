@@ -113,7 +113,6 @@ class FigureWidget(QtWidgets.QWidget):
 
 
 class RtmResultsPlots(QtWidgets.QScrollArea):
-
     # Note: making this widget a QScrollArea allows the widgets in the plot controls
     # widget (combo boxes, list widgets) to be shurnk smaller than their normal minimum
     # horizontal size. TODO: track down why this is, and find a less hacky approach.
